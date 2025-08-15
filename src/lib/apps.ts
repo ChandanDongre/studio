@@ -18,4 +18,5 @@ export const mockApps: App[] = [
   { id: 'games', name: 'Games', icon: Gamepad2 },
   { id: 'browser', name: 'Browser', icon: Globe },
   { id: 'authenticator', name: 'Authenticator', icon: Shield },
+  { id: 'fortress', name: 'Fortress', icon: Shield },
 ];
