@@ -41,6 +41,7 @@ export default function SettingsPage() {
   
   const [currentView, setCurrentView] = useState<SecurityView>('main');
   const [nextView, setNextView] = useState<LockMethod | null>(null);
+  const [actionAfterAuth, setActionAfterAuth] = useState<(() => void) | null>(null);
   
   const [newPin, setNewPin] = useState<string[]>(new Array(PIN_LENGTH).fill(''));
   const [confirmNewPin, setConfirmNewPin] = useState<string[]>(new Array(PIN_LENGTH).fill(''));
@@ -70,7 +71,11 @@ export default function SettingsPage() {
   }
 
   const handleAuthenticationSuccess = () => {
-    if (nextView) {
+    if (actionAfterAuth) {
+        actionAfterAuth();
+        setActionAfterAuth(null);
+        setCurrentView('main');
+    } else if (nextView) {
       setCurrentView(nextView);
       setNextView(null);
     } else {
@@ -165,6 +170,17 @@ export default function SettingsPage() {
       description: 'Your password has been set.',
     });
     setCurrentView('main');
+  }
+
+  const handleToggleBiometricsWithAuth = () => {
+    const action = () => {
+        toggleBiometrics();
+        toast({
+            title: `Fingerprint Unlock ${!isBiometricsEnabled ? 'Enabled' : 'Disabled'}`,
+        });
+    };
+    setActionAfterAuth(() => action);
+    setCurrentView('authenticate');
   }
 
   const handleResetApp = () => {
@@ -341,7 +357,7 @@ export default function SettingsPage() {
                             </div>
                              <Switch
                                 checked={isBiometricsEnabled}
-                                onCheckedChange={toggleBiometrics}
+                                onCheckedChange={handleToggleBiometricsWithAuth}
                                 aria-label="Toggle Fingerprint Unlock"
                             />
                         </div>
