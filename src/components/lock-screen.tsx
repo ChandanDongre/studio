@@ -7,10 +7,12 @@ import { Fingerprint, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-const CORRECT_PIN = "1234";
+const DEFAULT_PIN = "1234";
+const PIN_STORAGE_KEY = 'fortress-pin';
 
 export default function LockScreen() {
-    const [pin, setPin] = useState<string[]>(new Array(CORRECT_PIN.length).fill(''));
+    const [correctPin, setCorrectPin] = useState(DEFAULT_PIN);
+    const [pin, setPin] = useState<string[]>([]);
     const [isChecking, setIsChecking] = useState(false);
     const [showError, setShowError] = useState(false);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -18,21 +20,40 @@ export default function LockScreen() {
     const { toast } = useToast();
 
     useEffect(() => {
-        inputRefs.current[0]?.focus();
+        const storedPin = localStorage.getItem(PIN_STORAGE_KEY);
+        const currentPin = storedPin || DEFAULT_PIN;
+        setCorrectPin(currentPin);
+        setPin(new Array(currentPin.length).fill(''));
+        inputRefs.current = new Array(currentPin.length).fill(null);
     }, []);
+
+    useEffect(() => {
+        if(correctPin) {
+            setPin(new Array(correctPin.length).fill(''));
+            inputRefs.current = new Array(correctPin.length).fill(null);
+            inputRefs.current[0]?.focus();
+        }
+    }, [correctPin]);
 
     const handlePinChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
         const value = e.target.value;
+        // Only allow numeric input
         if (/^[0-9]$/.test(value)) {
             const newPin = [...pin];
             newPin[index] = value;
             setPin(newPin);
 
-            if (index < CORRECT_PIN.length - 1) {
+            if (index < correctPin.length - 1) {
                 inputRefs.current[index + 1]?.focus();
             } else {
+                // Automatically check pin when last digit is entered
                 checkPin(newPin.join(''));
             }
+        } else if (value === '') {
+            // Handle clearing the input
+             const newPin = [...pin];
+             newPin[index] = '';
+             setPin(newPin);
         }
     };
 
@@ -47,17 +68,20 @@ export default function LockScreen() {
     };
 
     const checkPin = async (fullPin: string) => {
+        if (fullPin.length !== correctPin.length) return;
+
         setIsChecking(true);
         setShowError(false);
 
+        // Simulate network latency
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        if (fullPin === CORRECT_PIN) {
+        if (fullPin === correctPin) {
             localStorage.setItem('fortress-unlocked', 'true');
             router.replace('/');
         } else {
             setShowError(true);
-            setPin(new Array(CORRECT_PIN.length).fill(''));
+            setPin(new Array(correctPin.length).fill(''));
             setTimeout(() => {
                 setShowError(false);
                 inputRefs.current[0]?.focus();
@@ -73,6 +97,10 @@ export default function LockScreen() {
         })
     }
 
+    if (!correctPin) {
+        return null; // or a loading state
+    }
+
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
             <div className="w-full max-w-sm text-center">
@@ -82,7 +110,7 @@ export default function LockScreen() {
                 <h1 className="text-3xl font-bold text-foreground">Enter PIN</h1>
                 <p className="mt-2 text-muted-foreground">Unlock Fortress to continue.</p>
                 <div className={cn('my-8 flex justify-center gap-3', showError && 'shake')}>
-                    {pin.map((digit, index) => (
+                    {Array.from({ length: correctPin.length }).map((_, index) => (
                         <input
                             key={index}
                             ref={el => inputRefs.current[index] = el}
@@ -90,7 +118,7 @@ export default function LockScreen() {
                             inputMode="numeric"
                             pattern="[0-9]*"
                             maxLength={1}
-                            value={digit}
+                            value={pin[index] || ''}
                             onChange={(e) => handlePinChange(e, index)}
                             onKeyDown={(e) => handleKeyDown(e, index)}
                             disabled={isChecking}

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Timer } from 'lucide-react';
+import { LogOut, Shield, Timer, Settings } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +63,10 @@ export default function Header() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+
+                    <Button onClick={() => router.push('/settings')} variant="ghost" size="icon" aria-label="Settings">
+                        <Settings className="h-5 w-5" />
+                    </Button>
 
                     <Button onClick={handleLock} variant="ghost" size="icon" aria-label="Lock App">
                         <LogOut className="h-5 w-5" />
