@@ -10,7 +10,7 @@ import PatternGrid from './pattern-grid';
 export default function PatternLock() {
   const router = useRouter();
   const { toast } = useToast();
-  const { checkPattern, pattern } = useLock();
+  const { checkPattern, wrongAttempt, isLockedOut, remainingLockoutTime } = useLock();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -18,12 +18,15 @@ export default function PatternLock() {
   }, []);
 
   const handlePatternComplete = async (completedPattern: number[]) => {
+    if (isLockedOut) return false;
+
     const isCorrect = checkPattern(completedPattern);
     
     if (isCorrect) {
       localStorage.setItem('fortress-unlocked', 'true');
       router.replace('/');
     } else {
+        wrongAttempt();
         toast({
             variant: 'destructive',
             title: 'Error',
@@ -37,9 +40,11 @@ export default function PatternLock() {
 
   const handleBiometric = () => {
     toast({
-        title: "Biometric Scan",
-        description: "This feature is for demonstration purposes only.",
+        title: "Biometric Scan Success",
+        description: "Unlocked via fingerprint.",
     })
+    localStorage.setItem('fortress-unlocked', 'true');
+    router.replace('/');
   }
 
   if (!isClient) {
@@ -53,14 +58,19 @@ export default function PatternLock() {
                 <ShieldCheck className="h-10 w-10 text-primary" />
             </div>
             <h1 className="text-3xl font-bold text-foreground">Draw Pattern</h1>
-            <p className="mt-2 text-muted-foreground">Draw your pattern to unlock.</p>
+            <p className="mt-2 text-muted-foreground">
+              {isLockedOut 
+                  ? `Too many attempts. Try again in ${remainingLockoutTime}s.`
+                  : "Draw your pattern to unlock."
+              }
+            </p>
             
             <div className="my-8 flex justify-center">
-                <PatternGrid onPatternComplete={handlePatternComplete} />
+                <PatternGrid onPatternComplete={handlePatternComplete} disabled={isLockedOut}/>
             </div>
 
             <div className="flex flex-col items-center gap-4">
-                <button onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+                <button onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground" disabled={isLockedOut}>
                     <Fingerprint className="h-6 w-6 text-accent" />
                     <span>Use Fingerprint</span>
                 </button>

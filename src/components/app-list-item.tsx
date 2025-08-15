@@ -7,13 +7,25 @@ interface AppListItemProps {
   app: App;
   isLocked: boolean;
   onToggleLock: (appId: string) => void;
+  onAppClick: (app: App) => void;
 }
 
-export default function AppListItem({ app, isLocked, onToggleLock }: AppListItemProps) {
+export default function AppListItem({ app, isLocked, onToggleLock, onAppClick }: AppListItemProps) {
     const Icon = app.icon;
 
+    const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        // Prevent click from propagating to the switch
+        if ((e.target as HTMLElement).closest('[role="switch"]')) {
+            return;
+        }
+        onAppClick(app);
+    };
+
     return (
-        <div className="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-muted/50">
+        <div 
+            className="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-muted/50 cursor-pointer"
+            onClick={handleContainerClick}
+        >
             <div className="flex items-center gap-4">
                 <Icon className="h-8 w-8 text-foreground" />
                 <span className="font-medium">{app.name}</span>

@@ -15,10 +15,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import { useLock } from '@/hooks/use-lock';
 
 export default function Header() {
     const router = useRouter();
     const { toast } = useToast();
+    const { startTempUnlock, isTempUnlocked, remainingTempUnlockTime } = useLock();
 
     const handleLock = () => {
         localStorage.removeItem('fortress-unlocked');
@@ -26,12 +28,19 @@ export default function Header() {
     };
 
     const handleTempUnlock = () => {
+        startTempUnlock();
         toast({
             title: "Temporary Unlock Activated",
-            description: "Security is paused for 15 minutes. This is a demo feature.",
+            description: "Security is paused for 15 minutes.",
             duration: 5000,
         });
     };
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
 
     return (
         <header className="border-b border-border/50 bg-card/50 backdrop-blur-lg sticky top-0 z-10">
@@ -42,9 +51,15 @@ export default function Header() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                     <AlertDialog>
+                    {isTempUnlocked && (
+                         <div className="text-sm font-mono text-accent tabular-nums">
+                            <Timer className="inline h-4 w-4 mr-1" />
+                            {formatTime(remainingTempUnlockTime)}
+                         </div>
+                    )}
+                    <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" aria-label="Temporary Unlock">
+                             <Button variant="ghost" size="icon" aria-label="Temporary Unlock" disabled={isTempUnlocked}>
                                 <Timer className="h-5 w-5 text-accent" />
                             </Button>
                         </AlertDialogTrigger>

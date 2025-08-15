@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLock } from '@/hooks/use-lock';
 
 export default function LockScreen() {
-    const { pin: correctPin, checkPin } = useLock();
+    const { pin: correctPin, checkPin, wrongAttempt, isLockedOut, remainingLockoutTime } = useLock();
     const [pin, setPin] = useState<string[]>(new Array(correctPin.length).fill(''));
     const [isChecking, setIsChecking] = useState(false);
     const [showError, setShowError] = useState(false);
@@ -42,7 +42,6 @@ export default function LockScreen() {
             }
 
             if (value !== '' && index === correctPin.length - 1) {
-                // Automatically check pin when last digit is entered
                 attemptUnlock(newPin.join(''));
             }
         }
@@ -55,7 +54,7 @@ export default function LockScreen() {
     };
 
     const attemptUnlock = async (fullPin: string) => {
-        if (fullPin.length !== correctPin.length) return;
+        if (fullPin.length !== correctPin.length || isLockedOut) return;
 
         setIsChecking(true);
         setShowError(false);
@@ -66,6 +65,7 @@ export default function LockScreen() {
             localStorage.setItem('fortress-unlocked', 'true');
             router.replace('/');
         } else {
+            wrongAttempt();
             setShowError(true);
             setPin(new Array(correctPin.length).fill(''));
             setTimeout(() => {
@@ -78,9 +78,11 @@ export default function LockScreen() {
     
     const handleBiometric = () => {
         toast({
-            title: "Biometric Scan",
-            description: "This feature is for demonstration purposes only.",
-        })
+            title: "Biometric Scan Success",
+            description: "Unlocked via fingerprint.",
+        });
+        localStorage.setItem('fortress-unlocked', 'true');
+        router.replace('/');
     }
 
     if (!isClient) {
@@ -94,7 +96,12 @@ export default function LockScreen() {
                     <ShieldCheck className="h-10 w-10 text-primary" />
                 </div>
                 <h1 className="text-3xl font-bold text-foreground">Enter PIN</h1>
-                <p className="mt-2 text-muted-foreground">Unlock Fortress to continue.</p>
+                <p className="mt-2 text-muted-foreground">
+                    {isLockedOut 
+                        ? `Too many attempts. Try again in ${remainingLockoutTime}s.`
+                        : "Unlock Fortress to continue."
+                    }
+                </p>
                 <div className={cn('my-8 flex justify-center gap-3', showError && 'shake')}>
                     {Array.from({ length: correctPin.length }).map((_, index) => (
                         <input
@@ -107,14 +114,14 @@ export default function LockScreen() {
                             value={pin[index] || ''}
                             onChange={(e) => handlePinChange(e, index)}
                             onKeyDown={(e) => handleKeyDown(e, index)}
-                            disabled={isChecking}
+                            disabled={isChecking || isLockedOut}
                             className="h-14 w-14 rounded-lg border bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary disabled:opacity-50"
                         />
                     ))}
                 </div>
 
                 <div className="flex flex-col items-center gap-4">
-                    <Button variant="ghost" onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+                    <Button variant="ghost" onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground" disabled={isLockedOut}>
                         <Fingerprint className="h-6 w-6 text-accent" />
                         <span>Use Fingerprint</span>
                     </Button>

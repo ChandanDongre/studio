@@ -5,19 +5,21 @@ import { useRouter } from 'next/navigation';
 import AppList from '@/components/app-list';
 import Header from '@/components/header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLock } from '@/hooks/use-lock';
 
 export default function Home() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isTempUnlocked } = useLock();
 
   useEffect(() => {
-    const unlocked = localStorage.getItem('fortress-unlocked') === 'true';
+    const unlocked = localStorage.getItem('fortress-unlocked') === 'true' || isTempUnlocked;
     if (!unlocked) {
       router.replace('/lock');
     } else {
       setIsAuthenticated(true);
     }
-  }, [router]);
+  }, [router, isTempUnlocked]);
 
   if (!isAuthenticated) {
     return (

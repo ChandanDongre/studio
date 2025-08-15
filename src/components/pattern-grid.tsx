@@ -9,13 +9,14 @@ interface Point {
 
 interface PatternGridProps {
   onPatternComplete: (pattern: number[]) => Promise<boolean> | boolean;
+  disabled?: boolean;
 }
 
 const ROWS = 3;
 const COLS = 3;
 const TOTAL_DOTS = ROWS * COLS;
 
-const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
+const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete, disabled=false }) => {
   const [activeDots, setActiveDots] = useState<number[]>([]);
   const [lines, setLines] = useState<{ start: Point; end: Point }[]>([]);
   const [mousePos, setMousePos] = useState<Point | null>(null);
@@ -83,6 +84,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
   };
 
   const handleStart = (e: MouseEvent | TouchEvent) => {
+    if(disabled) return;
     e.preventDefault();
     const pos = getEventPosition(e);
     if (!pos) return;
@@ -95,6 +97,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
   };
 
   const handleMove = (e: MouseEvent | TouchEvent) => {
+    if(disabled) return;
     e.preventDefault();
     if (!isDrawing) return;
 
@@ -115,7 +118,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
   };
 
   const handleEnd = async () => {
-    if (!isDrawing) return;
+    if(disabled || !isDrawing) return;
     setIsDrawing(false);
     setMousePos(null);
 
@@ -138,7 +141,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
   const lastDotPos = activeDots.length > 0 ? dotPositions.current[activeDots[activeDots.length - 1]] : null;
 
   return (
-    <div className="relative w-64 h-64 cursor-pointer" onMouseLeave={handleEnd}>
+    <div className={cn("relative w-64 h-64", disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')} onMouseLeave={handleEnd}>
       <svg
         ref={gridRef}
         className={cn("w-full h-full", shake && 'shake')}

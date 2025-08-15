@@ -1,10 +1,12 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { mockApps, type App } from '@/lib/apps';
 import AppListItem from '@/components/app-list-item';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const LOCKED_APPS_STORAGE_KEY = 'fortress-locked-apps';
 
@@ -12,6 +14,8 @@ export default function AppList() {
     const [lockedApps, setLockedApps] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoaded, setIsLoaded] = useState(false);
+    const router = useRouter();
+    const { toast } = useToast();
 
     useEffect(() => {
         try {
@@ -46,6 +50,23 @@ export default function AppList() {
             return newSet;
         });
     };
+    
+    const handleAppClick = (app: App) => {
+        const isLocked = lockedApps.has(app.id);
+        if (isLocked) {
+             toast({
+                title: "App Locked",
+                description: `You need to unlock Fortress to open ${app.name}.`,
+            });
+            localStorage.setItem('fortress-unlocked', 'false');
+            router.push('/lock');
+        } else {
+             toast({
+                title: `${app.name} Launched`,
+                description: `This is a demo. You have successfully "launched" the app.`,
+            });
+        }
+    };
 
     const filteredApps = useMemo(() => 
         mockApps.filter(app => 
@@ -79,6 +100,7 @@ export default function AppList() {
                             app={app}
                             isLocked={lockedApps.has(app.id)}
                             onToggleLock={handleToggleLock}
+                            onAppClick={handleAppClick}
                         />
                     ))}
                     {filteredApps.length === 0 && (
