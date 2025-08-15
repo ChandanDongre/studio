@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -31,7 +32,7 @@ export default function LockPage() {
 
   }, [isSetupComplete, isTempAuthenticated, isLoading, router, redirectTo]);
 
-  if (isLoading || !isSetupComplete) {
+  if (isLoading || !isSetupComplete || isTempAuthenticated) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-sm space-y-4 text-center">
