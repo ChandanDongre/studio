@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 
 type SetupStep = 'choice' | 'pin' | 'pattern' | 'password' | 'done';
+const PIN_LENGTH = 4;
 
 export default function SetupPage() {
   const router = useRouter();
@@ -19,24 +20,62 @@ export default function SetupPage() {
   const { lockType, setLockType, setPin, setPattern, setPassword, completeSetup } = useLock();
   
   const [step, setStep] = useState<SetupStep>('choice');
-  const [pin, setPinValue] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+  const [pin, setPinValue] = useState<string[]>(new Array(PIN_LENGTH).fill(''));
+  const [confirmPin, setConfirmPin] = useState<string[]>(new Array(PIN_LENGTH).fill(''));
+  
+  const pinInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const confirmPinInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    pinInputRefs.current[0]?.focus();
+  }, [step]);
+
 
   const handleChoice = (type: 'pin' | 'pattern' | 'password') => {
     setLockType(type);
     setStep(type);
   };
 
+  const handlePinChange = (e: ChangeEvent<HTMLInputElement>, index: number, type: 'new' | 'confirm') => {
+    const value = e.target.value;
+    const set = type === 'new' ? setPinValue : setConfirmPin;
+    const refs = type === 'new' ? pinInputRefs : confirmPinInputRefs;
+    const currentPin = type === 'new' ? pin : confirmPin;
+
+    if (/^[0-9]$/.test(value) || value === '') {
+        const newPin = [...currentPin];
+        newPin[index] = value;
+        set(newPin);
+
+        if (value !== '' && index < PIN_LENGTH - 1) {
+            refs.current[index + 1]?.focus();
+        }
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number, type: 'new' | 'confirm') => {
+      const refs = type === 'new' ? pinInputRefs : confirmPinInputRefs;
+      const pinState = type === 'new' ? pin : confirmPin;
+      if (e.key === 'Backspace' && !pinState[index] && index > 0) {
+          refs.current[index - 1]?.focus();
+      }
+  };
+
   const handlePinSetup = () => {
-    if (pin.length < 4) {
-      toast({ variant: 'destructive', title: 'Error', description: 'PIN must be at least 4 digits.' });
+    const pinString = pin.join('');
+    const confirmPinString = confirmPin.join('');
+
+    if (pinString.length < PIN_LENGTH) {
+      toast({ variant: 'destructive', title: 'Error', description: `PIN must be ${PIN_LENGTH} digits.` });
       return;
     }
-    if (pin !== confirmPin) {
+    if (pinString !== confirmPinString) {
       toast({ variant: 'destructive', title: 'Error', description: 'PINs do not match.' });
+      setConfirmPin(new Array(PIN_LENGTH).fill(''));
+      confirmPinInputRefs.current[0]?.focus();
       return;
     }
-    setPin(pin);
+    setPin(pinString);
     completeSetup();
     setStep('done');
   };
@@ -72,12 +111,49 @@ export default function SetupPage() {
         return (
           <>
             <h1 className="text-2xl font-bold">Set Your PIN</h1>
-            <p className="text-muted-foreground mb-8">Enter a 4-digit PIN.</p>
-            <div className="space-y-4 w-full max-w-xs">
-                <input type="password" placeholder="Enter PIN" value={pin} onChange={(e) => setPinValue(e.target.value)} className="w-full p-2 text-center text-lg tracking-[1rem] bg-input rounded-md" maxLength={4} />
-                <input type="password" placeholder="Confirm PIN" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} className="w-full p-2 text-center text-lg tracking-[1rem] bg-input rounded-md" maxLength={4} />
+            <p className="text-muted-foreground mb-8">Enter a {PIN_LENGTH}-digit PIN to secure your vault.</p>
+            <div className="space-y-6 w-full max-w-xs text-left">
+              <div>
+                  <label className="text-sm font-medium text-muted-foreground pl-1">New PIN</label>
+                  <div className="mt-2 flex justify-center gap-3">
+                      {pin.map((digit, index) => (
+                          <input
+                              key={`pin-${index}`}
+                              ref={(el) => (pinInputRefs.current[index] = el)}
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={1}
+                              value={digit}
+                              onChange={(e) => handlePinChange(e, index, 'new')}
+                              onKeyDown={(e) => handleKeyDown(e, index, 'new')}
+                              className="h-14 w-14 rounded-lg border border-white/20 bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary"
+                          />
+                      ))}
+                  </div>
+              </div>
+              <div>
+                  <label className="text-sm font-medium text-muted-foreground pl-1">Confirm PIN</label>
+                  <div className="mt-2 flex justify-center gap-3">
+                       {confirmPin.map((digit, index) => (
+                          <input
+                              key={`confirm-pin-${index}`}
+                              ref={(el) => (confirmPinInputRefs.current[index] = el)}
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={1}
+                              value={digit}
+                              onChange={(e) => handlePinChange(e, index, 'confirm')}
+                              onKeyDown={(e) => handleKeyDown(e, index, 'confirm')}
+                              className="h-14 w-14 rounded-lg border border-white/20 bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary"
+                          />
+                      ))}
+                  </div>
+              </div>
             </div>
-            <Button onClick={handlePinSetup} className="mt-8">Set PIN</Button>
+            <div className="w-full max-w-xs mt-8 flex flex-col gap-2">
+                <Button onClick={handlePinSetup}>Set PIN</Button>
+                <Button variant="outline" onClick={() => setStep('choice')}>Back</Button>
+            </div>
           </>
         );
       case 'pattern':
@@ -85,6 +161,7 @@ export default function SetupPage() {
           <>
             <h1 className="text-2xl font-bold">Create Your Pattern</h1>
             <PatternSetup onPatternSet={handlePatternSetup} />
+             <Button variant="outline" onClick={() => setStep('choice')} className="mt-4">Back</Button>
           </>
         );
       case 'password':
@@ -92,6 +169,7 @@ export default function SetupPage() {
           <>
             <h1 className="text-2xl font-bold">Set Your Password</h1>
             <PasswordSetup onPasswordSet={handlePasswordSetup} />
+             <Button variant="outline" onClick={() => setStep('choice')} className="mt-8">Back</Button>
           </>
         )
       case 'done':
