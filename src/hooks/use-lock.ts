@@ -134,6 +134,7 @@ export const useLock = create<LockState>()(
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
           if (state) {
+            // This is the key change: ensure tempAuthenticated is always false on load
             state.tempAuthenticated = false; 
             state.isLoading = false;
           }
@@ -142,15 +143,9 @@ export const useLock = create<LockState>()(
   )
 );
 
+// Initialize store and start timers
 if (typeof window !== 'undefined') {
   useLock.persist.rehydrate();
-  
-  // No need for visibility change listener if we don't have a global lock
-  // document.addEventListener("visibilitychange", () => {
-  //   if (document.visibilityState === 'hidden') {
-  //     useLock.getState().setTempAuthenticated(false);
-  //   }
-  // });
 
   setInterval(() => {
     useLock.getState()._updateLockoutStatus();

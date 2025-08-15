@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function LockPageContent() {
-  const { lockType, isSetupComplete, setTempAuthenticated, isTempUnlocked } = useLock();
+  const { lockType, isSetupComplete, setTempAuthenticated } = useLock();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '/';
