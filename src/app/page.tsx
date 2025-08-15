@@ -10,12 +10,12 @@ import { useLock } from '@/hooks/use-lock';
 
 export default function Home() {
   const router = useRouter();
-  const { isSetupComplete, isTempAuthenticated } = useLock();
-  const [isLoading, setIsLoading] = useState(true);
+  const { isSetupComplete, isTempAuthenticated, isLoading: isLockLoading } = useLock();
+  const [isPageLoading, setIsPageLoading] = useState(true);
 
   useEffect(() => {
-    // If the hook is still loading, wait.
-    if (useLock.persist.getInitialState().isLoading) {
+    // If the hook is still rehydrating its state from storage, wait.
+    if (isLockLoading) {
       return;
     }
 
@@ -32,11 +32,11 @@ export default function Home() {
     }
 
     // If we've made it this far, the user is set up and authenticated.
-    setIsLoading(false);
+    setIsPageLoading(false);
 
-  }, [router, isSetupComplete, isTempAuthenticated]);
+  }, [router, isSetupComplete, isTempAuthenticated, isLockLoading]);
 
-  if (isLoading || !isSetupComplete || !isTempAuthenticated) {
+  if (isPageLoading || isLockLoading || !isSetupComplete || !isTempAuthenticated) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-2xl space-y-4">
