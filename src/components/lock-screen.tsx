@@ -14,11 +14,11 @@ interface LockScreenProps {
 }
 
 export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps) {
-    const { pin: correctPin, checkPin, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled, setTempAuthenticated } = useLock();
-    const [pin, setPin] = useState<string[]>(new Array(correctPin.length).fill(''));
+    const { pin: correctPin, checkPin, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled } = useLock();
+    const [pin, setPin] = useState<string[]>(new Array(correctPin?.length || 4).fill(''));
     const [isChecking, setIsChecking] = useState(false);
     const [showError, setShowError] = useState(false);
-    const inputRefs = useRef<(HTMLInputElement | null)[]>(new Array(correctPin.length).fill(null));
+    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -27,12 +27,12 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
     }, []);
 
     useEffect(() => {
-        if(isClient) {
+        if(isClient && correctPin) {
             setPin(new Array(correctPin.length).fill(''));
             inputRefs.current = new Array(correctPin.length).fill(null);
             inputRefs.current[0]?.focus();
         }
-    }, [correctPin.length, isClient]);
+    }, [correctPin?.length, isClient, correctPin]);
 
     const handlePinChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
         const value = e.target.value;
@@ -45,7 +45,7 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
                 inputRefs.current[index + 1]?.focus();
             }
 
-            if (value !== '' && index === correctPin.length - 1) {
+            if (value !== '' && newPin.join('').length === correctPin.length) {
                 attemptUnlock(newPin.join(''));
             }
         }
@@ -66,7 +66,6 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
         await new Promise(resolve => setTimeout(resolve, 300));
 
         if (checkPin(fullPin)) {
-            setTempAuthenticated(true);
             onUnlock();
         } else {
             wrongAttempt();
@@ -85,11 +84,10 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
             title: "Biometric Scan Success",
             description: "Unlocked via fingerprint.",
         });
-        setTempAuthenticated(true);
         onUnlock();
     }
 
-    if (!isClient) {
+    if (!isClient || !correctPin) {
         return null;
     }
     
@@ -110,10 +108,10 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
                 }
             </p>
             <div className={cn('my-8 flex justify-center gap-3', showError && 'shake')}>
-                {Array.from({ length: correctPin.length }).map((_, index) => (
+                {pin.map((_, index) => (
                     <input
                         key={index}
-                        ref={el => inputRefs.current[index] = el}
+                        ref={el => { if(el) inputRefs.current[index] = el; }}
                         type="password"
                         inputMode="numeric"
                         pattern="[0-9]*"
@@ -123,6 +121,7 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
                         onKeyDown={(e) => handleKeyDown(e, index)}
                         disabled={isChecking || isLockedOut}
                         className="h-14 w-14 rounded-lg border border-white/20 bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary disabled:opacity-50"
+                        autoFocus={index === 0}
                     />
                 ))}
             </div>

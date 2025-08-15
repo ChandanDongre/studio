@@ -15,7 +15,7 @@ interface PasswordLockProps {
 }
 
 export default function PasswordLock({ onUnlock, isPage = true }: PasswordLockProps) {
-    const { checkPassword, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled, setTempAuthenticated } = useLock();
+    const { checkPassword, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled } = useLock();
     const [password, setPassword] = useState('');
     const [isChecking, setIsChecking] = useState(false);
     const [showError, setShowError] = useState(false);
@@ -36,7 +36,6 @@ export default function PasswordLock({ onUnlock, isPage = true }: PasswordLockPr
         await new Promise(resolve => setTimeout(resolve, 300));
 
         if (checkPassword(password)) {
-            setTempAuthenticated(true);
             onUnlock();
         } else {
             wrongAttempt();
@@ -54,7 +53,6 @@ export default function PasswordLock({ onUnlock, isPage = true }: PasswordLockPr
             title: "Biometric Scan Success",
             description: "Unlocked via fingerprint.",
         });
-        setTempAuthenticated(true);
         onUnlock();
     }
 
@@ -88,7 +86,7 @@ export default function PasswordLock({ onUnlock, isPage = true }: PasswordLockPr
                     className="h-12 text-center text-lg"
                     autoFocus
                 />
-                <Button type="submit" className="w-full" size="lg" disabled={isChecking || isLockedOut}>
+                <Button type="submit" className="w-full" size="lg" disabled={isChecking || isLockedOut || !password}>
                     {isChecking ? "Unlocking..." : "Unlock"}
                 </Button>
             </form>

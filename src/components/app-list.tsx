@@ -7,7 +7,6 @@ import AppListItem from '@/components/app-list-item';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { useLock } from '@/hooks/use-lock';
 
 const LOCKED_APPS_STORAGE_KEY = 'fortress-locked-apps';
@@ -17,8 +16,7 @@ export default function AppList() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoaded, setIsLoaded] = useState(false);
     const router = useRouter();
-    const { toast } = useToast();
-    const { isTempUnlocked } = useLock();
+    const { isTempUnlocked, isTempAuthenticated } = useLock();
 
     useEffect(() => {
         try {
@@ -56,15 +54,14 @@ export default function AppList() {
     
     const handleAppClick = (app: App) => {
         const isAppIndividuallyLocked = lockedApps.has(app.id);
-        
-        if (isAppIndividuallyLocked && !isTempUnlocked) {
-            // App is locked, and there's no global temporary unlock.
-            // Redirect to the lock screen, telling it to come back to the success page.
+        const isGloballyUnlocked = isTempUnlocked || isTempAuthenticated;
+
+        if (isAppIndividuallyLocked && !isGloballyUnlocked) {
+            // App is locked, and user is not authenticated for this session.
             const targetUrl = `/app-launch-success?appName=${encodeURIComponent(app.name)}`;
             router.push(`/lock?redirectTo=${encodeURIComponent(targetUrl)}`);
         } else {
-            // App is not locked OR there's a global temporary unlock active.
-            // Go directly to the success page.
+            // App is not locked OR user is authenticated for this session.
             const targetUrl = `/app-launch-success?appName=${encodeURIComponent(app.name)}`;
             router.push(targetUrl);
         }

@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function LockPageContent() {
-  const { lockType, isSetupComplete, setTempAuthenticated } = useLock();
+  const { lockType, isSetupComplete, setTempAuthenticated, isTempAuthenticated } = useLock();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '/';
@@ -19,7 +19,11 @@ function LockPageContent() {
     if (!isSetupComplete) {
       router.replace('/welcome');
     }
-  }, [isSetupComplete, router]);
+    // If user is already authenticated (e.g. via temp unlock), just redirect.
+    if (isTempAuthenticated) {
+        router.replace(redirectTo);
+    }
+  }, [isSetupComplete, isTempAuthenticated, router, redirectTo]);
 
   const onUnlock = () => {
     // Set temp authenticated state for the session

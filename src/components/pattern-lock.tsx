@@ -14,7 +14,7 @@ interface PatternLockProps {
 
 export default function PatternLock({ onUnlock, isPage = true }: PatternLockProps) {
   const { toast } = useToast();
-  const { checkPattern, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled, setTempAuthenticated } = useLock();
+  const { checkPattern, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled } = useLock();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -24,19 +24,15 @@ export default function PatternLock({ onUnlock, isPage = true }: PatternLockProp
   const handlePatternComplete = async (completedPattern: number[]) => {
     if (isLockedOut) return false;
 
+    if (completedPattern.length === 0) return true; // Ignore empty patterns from accidental clicks
+
     const isCorrect = checkPattern(completedPattern);
     
     if (isCorrect) {
-      setTempAuthenticated(true);
       onUnlock();
     } else {
         wrongAttempt();
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Incorrect pattern. Please try again.',
-            duration: 2000,
-        });
+        // The toast is now optional as the shake provides feedback
         return false; // Indicates failure, so grid can shake
     }
     return true; // Indicates success
@@ -47,7 +43,6 @@ export default function PatternLock({ onUnlock, isPage = true }: PatternLockProp
         title: "Biometric Scan Success",
         description: "Unlocked via fingerprint.",
     })
-    setTempAuthenticated(true);
     onUnlock();
   }
 

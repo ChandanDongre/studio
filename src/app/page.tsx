@@ -14,9 +14,8 @@ export default function Home() {
 
   useEffect(() => {
     if (isLoading) {
-      return;
+      return; // Wait until zustand has rehydrated
     }
-
     if (!isSetupComplete) {
       router.replace('/welcome');
     }

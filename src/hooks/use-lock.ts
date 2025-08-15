@@ -6,7 +6,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 const DEFAULT_PIN = "1234";
 const DEFAULT_PATTERN = [0, 1, 2, 5, 8, 7, 6, 3];
 const DEFAULT_PASSWORD = "password";
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_SECONDS = 30;
 const TEMP_UNLOCK_MINUTES = 15;
 
@@ -21,7 +21,7 @@ interface LockState {
   failedAttempts: number;
   lockoutUntil: number | null; // Timestamp
   tempUnlockUntil: number | null; // Timestamp for global unlock
-  tempAuthenticated: boolean; // Is user authenticated for this session?
+  isTempAuthenticated: boolean; // Is user authenticated for this session?
   isLockedOut: boolean;
   remainingLockoutTime: number;
   isTempUnlocked: boolean;
@@ -38,7 +38,8 @@ interface LockState {
   wrongAttempt: () => void;
   startTempUnlock: () => void;
   setTempAuthenticated: (isAuthenticated: boolean) => void;
-  _updateLockoutStatus: () => void;
+  logout: () => void;
+  _updateStatus: () => void;
 }
 
 export const useLock = create<LockState>()(
@@ -54,7 +55,7 @@ export const useLock = create<LockState>()(
       failedAttempts: 0,
       lockoutUntil: null,
       tempUnlockUntil: null,
-      tempAuthenticated: false,
+      isTempAuthenticated: false,
       isLockedOut: false,
       remainingLockoutTime: 0,
       isTempUnlocked: false,
@@ -64,27 +65,27 @@ export const useLock = create<LockState>()(
       setPin: (pin) => set({ pin, failedAttempts: 0, lockoutUntil: null }),
       setPattern: (pattern) => set({ pattern, failedAttempts: 0, lockoutUntil: null }),
       setPassword: (password) => set({ password, failedAttempts: 0, lockoutUntil: null }),
-      completeSetup: () => set({ isSetupComplete: true, tempAuthenticated: true }), // Authenticate after setup
+      completeSetup: () => set({ isSetupComplete: true, isTempAuthenticated: true }), // Authenticate after setup
       toggleBiometrics: () => set(state => ({ isBiometricsEnabled: !state.isBiometricsEnabled })),
       
       checkPin: (pin) => {
         const isCorrect = pin === get().pin;
         if (isCorrect) {
-            set({ failedAttempts: 0, lockoutUntil: null });
+            set({ failedAttempts: 0, lockoutUntil: null, isTempAuthenticated: true });
         }
         return isCorrect;
       },
       checkPassword: (password) => {
         const isCorrect = password === get().password;
         if (isCorrect) {
-            set({ failedAttempts: 0, lockoutUntil: null });
+            set({ failedAttempts: 0, lockoutUntil: null, isTempAuthenticated: true });
         }
         return isCorrect;
       },
       checkPattern: (pattern) => {
         const isCorrect = JSON.stringify(pattern) === JSON.stringify(get().pattern);
         if (isCorrect) {
-            set({ failedAttempts: 0, lockoutUntil: null });
+            set({ failedAttempts: 0, lockoutUntil: null, isTempAuthenticated: true });
         }
         return isCorrect;
       },
@@ -93,19 +94,22 @@ export const useLock = create<LockState>()(
         if (newAttemptCount >= MAX_ATTEMPTS) {
           const lockoutUntil = Date.now() + LOCKOUT_DURATION_SECONDS * 1000;
           set({ failedAttempts: newAttemptCount, lockoutUntil });
-          get()._updateLockoutStatus();
+          get()._updateStatus();
         } else {
           set({ failedAttempts: newAttemptCount });
         }
       },
       startTempUnlock: () => {
         const tempUnlockUntil = Date.now() + TEMP_UNLOCK_MINUTES * 60 * 1000;
-        set({ tempUnlockUntil, tempAuthenticated: true }); // Also authenticate
+        set({ tempUnlockUntil, isTempAuthenticated: true }); // Also authenticate
       },
       setTempAuthenticated: (isAuthenticated) => {
-        set({ tempAuthenticated: isAuthenticated });
+        set({ isTempAuthenticated: isAuthenticated });
       },
-      _updateLockoutStatus: () => {
+      logout: () => {
+        set({ isTempAuthenticated: false, tempUnlockUntil: null, isTempUnlocked: false, remainingTempUnlockTime: 0 });
+      },
+      _updateStatus: () => {
         const { lockoutUntil, tempUnlockUntil } = get();
         const now = Date.now();
         
@@ -125,7 +129,7 @@ export const useLock = create<LockState>()(
          if (isTempUnlocked) {
           set({ isTempUnlocked, remainingTempUnlockTime: Math.max(0, remainingTempUnlockTime) });
         } else if (get().isTempUnlocked) {
-          set({ isTempUnlocked: false, remainingTempUnlockTime: 0, tempUnlockUntil: null });
+          set({ isTempUnlocked: false, remainingTempUnlockTime: 0, tempUnlockUntil: null, isTempAuthenticated: false });
         }
       }
     }),
@@ -135,7 +139,7 @@ export const useLock = create<LockState>()(
       onRehydrateStorage: () => (state) => {
           if (state) {
             // This is the key change: ensure tempAuthenticated is always false on load
-            state.tempAuthenticated = false; 
+            state.isTempAuthenticated = false; 
             state.isLoading = false;
           }
       },
@@ -146,8 +150,11 @@ export const useLock = create<LockState>()(
 // Initialize store and start timers
 if (typeof window !== 'undefined') {
   useLock.persist.rehydrate();
+  
+  // Set isTempAuthenticated to false on first load of the session
+  useLock.getState().setTempAuthenticated(false);
 
   setInterval(() => {
-    useLock.getState()._updateLockoutStatus();
+    useLock.getState()._updateStatus();
   }, 1000);
 }
