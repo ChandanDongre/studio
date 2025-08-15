@@ -14,6 +14,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // If the hook is still loading, wait.
+    if (useLock.persist.getInitialState().isLoading) {
+      return;
+    }
+
     if (!isSetupComplete) {
       router.replace('/welcome');
       return;
