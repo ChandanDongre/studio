@@ -4,12 +4,14 @@ import { ShieldCheck, Fingerprint } from 'lucide-react';
 import { useLock } from '@/hooks/use-lock';
 import { useToast } from '@/hooks/use-toast';
 import PatternGrid from './pattern-grid';
+import { cn } from '@/lib/utils';
 
 interface PatternLockProps {
     onUnlock: () => void;
+    isPage?: boolean;
 }
 
-export default function PatternLock({ onUnlock }: PatternLockProps) {
+export default function PatternLock({ onUnlock, isPage = true }: PatternLockProps) {
   const { toast } = useToast();
   const { checkPattern, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled, setTempAuthenticated } = useLock();
   const [isClient, setIsClient] = useState(false);
@@ -52,14 +54,17 @@ export default function PatternLock({ onUnlock }: PatternLockProps) {
     return null;
   }
 
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-        <div className="w-full max-w-sm text-center">
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                <ShieldCheck className="h-10 w-10 text-primary" />
-            </div>
-            <h1 className="text-3xl font-bold text-foreground">Draw Pattern</h1>
-            <p className="mt-2 text-muted-foreground">
+  const content = (
+       <div className="w-full max-w-sm text-center">
+            {isPage && (
+                <>
+                    <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                        <ShieldCheck className="h-10 w-10 text-primary" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-foreground">Draw Pattern</h1>
+                </>
+            )}
+            <p className={cn("mt-2 text-muted-foreground", !isPage && "mb-4")}>
               {isLockedOut 
                   ? `Too many attempts. Try again in ${remainingLockoutTime}s.`
                   : "Draw your pattern to unlock."
@@ -79,6 +84,15 @@ export default function PatternLock({ onUnlock }: PatternLockProps) {
                 )}
             </div>
         </div>
+  )
+
+  if (!isPage) {
+    return content;
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+       {content}
     </div>
   );
 }

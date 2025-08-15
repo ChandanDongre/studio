@@ -9,9 +9,10 @@ import { useLock } from '@/hooks/use-lock';
 
 interface LockScreenProps {
     onUnlock: () => void;
+    isPage?: boolean; // Is this component taking up the full page?
 }
 
-export default function LockScreen({ onUnlock }: LockScreenProps) {
+export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps) {
     const { pin: correctPin, checkPin, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled, setTempAuthenticated } = useLock();
     const [pin, setPin] = useState<string[]>(new Array(correctPin.length).fill(''));
     const [isChecking, setIsChecking] = useState(false);
@@ -90,47 +91,59 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
     if (!isClient) {
         return null;
     }
+    
+    const content = (
+        <div className="w-full max-w-sm text-center">
+            {isPage && (
+                <>
+                    <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                        <ShieldCheck className="h-10 w-10 text-primary" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-foreground">Enter PIN</h1>
+                </>
+            )}
+            <p className={cn("mt-2 text-muted-foreground", !isPage && "mb-4")}>
+                {isLockedOut 
+                    ? `Too many attempts. Try again in ${remainingLockoutTime}s.`
+                    : "Unlock to continue."
+                }
+            </p>
+            <div className={cn('my-8 flex justify-center gap-3', showError && 'shake')}>
+                {Array.from({ length: correctPin.length }).map((_, index) => (
+                    <input
+                        key={index}
+                        ref={el => inputRefs.current[index] = el}
+                        type="password"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={1}
+                        value={pin[index] || ''}
+                        onChange={(e) => handlePinChange(e, index)}
+                        onKeyDown={(e) => handleKeyDown(e, index)}
+                        disabled={isChecking || isLockedOut}
+                        className="h-14 w-14 rounded-lg border bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary disabled:opacity-50"
+                    />
+                ))}
+            </div>
+
+            <div className="flex flex-col items-center gap-4">
+                {isBiometricsEnabled && (
+                    <Button variant="ghost" onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground" disabled={isLockedOut}>
+                        <Fingerprint className="h-6 w-6 text-accent" />
+                        <span>Use Fingerprint</span>
+                    </Button>
+                )}
+            </div>
+        </div>
+    );
+
+    if (!isPage) {
+        return content;
+    }
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-            <div className="w-full max-w-sm text-center">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                    <ShieldCheck className="h-10 w-10 text-primary" />
-                </div>
-                <h1 className="text-3xl font-bold text-foreground">Enter PIN</h1>
-                <p className="mt-2 text-muted-foreground">
-                    {isLockedOut 
-                        ? `Too many attempts. Try again in ${remainingLockoutTime}s.`
-                        : "Unlock to continue."
-                    }
-                </p>
-                <div className={cn('my-8 flex justify-center gap-3', showError && 'shake')}>
-                    {Array.from({ length: correctPin.length }).map((_, index) => (
-                        <input
-                            key={index}
-                            ref={el => inputRefs.current[index] = el}
-                            type="password"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={1}
-                            value={pin[index] || ''}
-                            onChange={(e) => handlePinChange(e, index)}
-                            onKeyDown={(e) => handleKeyDown(e, index)}
-                            disabled={isChecking || isLockedOut}
-                            className="h-14 w-14 rounded-lg border bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary disabled:opacity-50"
-                        />
-                    ))}
-                </div>
-
-                <div className="flex flex-col items-center gap-4">
-                    {isBiometricsEnabled && (
-                        <Button variant="ghost" onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground" disabled={isLockedOut}>
-                            <Fingerprint className="h-6 w-6 text-accent" />
-                            <span>Use Fingerprint</span>
-                        </Button>
-                    )}
-                </div>
-            </div>
+           {content}
         </div>
     );
 }

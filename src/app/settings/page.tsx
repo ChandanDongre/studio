@@ -14,6 +14,9 @@ import PatternSetup from '@/components/pattern-setup';
 import PasswordSetup from '@/components/password-setup';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import LockScreen from '@/components/lock-screen';
+import PatternLock from '@/components/pattern-lock';
+import PasswordLock from '@/components/password-lock';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,14 +29,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-type SecurityView = 'main' | 'pin' | 'pattern' | 'password';
+type SecurityView = 'main' | 'pin' | 'pattern' | 'password' | 'authenticate';
+type LockMethod = 'pin' | 'pattern' | 'password';
 
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { lockType, setLockType, setPin, setPattern, setPassword, pin, isBiometricsEnabled, toggleBiometrics, isSetupComplete } = useLock();
+  const { lockType, setLockType, setPin, setPattern, setPassword, pin, password, pattern, isBiometricsEnabled, toggleBiometrics, isSetupComplete } = useLock();
   
   const [currentView, setCurrentView] = useState<SecurityView>('main');
+  const [nextView, setNextView] = useState<LockMethod | null>(null);
   
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -43,7 +48,6 @@ export default function SettingsPage() {
   const [isReady, setIsReady] = useState(false);
 
    useEffect(() => {
-    // If setup is not complete, redirect to welcome page
     if (!isSetupComplete) {
       router.replace('/welcome');
     } else {
@@ -52,17 +56,39 @@ export default function SettingsPage() {
   }, [router, isSetupComplete]);
   
    useEffect(() => {
-    // Reset view if user navigates away and comes back
     setCurrentView('main');
   }, []);
+
+  const handleStartChange = (targetView: LockMethod) => {
+    if (targetView === lockType) {
+        // If changing to the same type, go directly to the setup view
+        setCurrentView(targetView);
+    } else {
+        // If changing to a different type, first authenticate with the current method
+        setNextView(targetView);
+        setCurrentView('authenticate');
+    }
+  }
+
+  const handleAuthenticationSuccess = () => {
+    if (nextView) {
+      setCurrentView(nextView);
+      setNextView(null);
+    } else {
+        // Fallback to main if something went wrong
+        setCurrentView('main');
+    }
+  };
+
 
   const handlePinChange = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const storedPin = pin || "1234";
-
-    if (currentPin !== storedPin) {
+    // In a real app, you'd have a secure way to verify the current PIN.
+    // For this prototype, we'll compare against the stored one.
+    // This check is primarily for when changing PIN-to-PIN.
+    if (lockType === 'pin' && currentPin !== pin) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -96,7 +122,7 @@ export default function SettingsPage() {
     setLockType('pin');
     toast({
       title: 'Success!',
-      description: 'Your PIN has been updated.',
+      description: 'Your PIN has been set.',
     });
     
     setCurrentPin('');
@@ -106,12 +132,12 @@ export default function SettingsPage() {
     setCurrentView('main');
   };
 
-  const handlePatternSet = (pattern: number[]) => {
-    setPattern(pattern);
+  const handlePatternSet = (newPattern: number[]) => {
+    setPattern(newPattern);
     setLockType('pattern');
     toast({
       title: 'Success!',
-      description: 'Your pattern has been updated.',
+      description: 'Your pattern has been set.',
     });
     setCurrentView('main');
   }
@@ -121,7 +147,7 @@ export default function SettingsPage() {
     setLockType('password');
     toast({
       title: 'Success!',
-      description: 'Your password has been updated.',
+      description: 'Your password has been set.',
     });
     setCurrentView('main');
   }
@@ -137,28 +163,47 @@ export default function SettingsPage() {
 
   const renderContent = () => {
     switch(currentView) {
+        case 'authenticate':
+            return (
+                <>
+                    <CardHeader>
+                        <CardTitle>Verify It's You</CardTitle>
+                        <CardDescription>Please enter your current {getLockTypeDescription()} to continue.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center">
+                        {lockType === 'pin' && <LockScreen onUnlock={handleAuthenticationSuccess} isPage={false} />}
+                        {lockType === 'pattern' && <PatternLock onUnlock={handleAuthenticationSuccess} isPage={false} />}
+                        {lockType === 'password' && <PasswordLock onUnlock={handleAuthenticationSuccess} isPage={false} />}
+                        <Button type="button" variant="outline" onClick={() => setCurrentView('main')} className="w-full mt-4 max-w-sm">Cancel</Button>
+                    </CardContent>
+                </>
+            );
         case 'pin':
             return (
                 <>
                     <CardHeader>
-                        <CardTitle>Change PIN</CardTitle>
-                        <CardDescription>Update your existing PIN.</CardDescription>
+                        <CardTitle>Set New PIN</CardTitle>
+                        <CardDescription>
+                            {lockType === 'pin' ? 'Update your existing PIN.' : 'Set a new PIN to secure your apps.'}
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                          <form onSubmit={handlePinChange} className="space-y-4">
+                            {lockType === 'pin' && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="current-pin">Current PIN</Label>
+                                    <Input
+                                        id="current-pin"
+                                        type="password"
+                                        inputMode="numeric"
+                                        value={currentPin}
+                                        onChange={(e) => setCurrentPin(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            )}
                             <div className="space-y-2">
-                            <Label htmlFor="current-pin">Current PIN</Label>
-                            <Input
-                                id="current-pin"
-                                type="password"
-                                inputMode="numeric"
-                                value={currentPin}
-                                onChange={(e) => setCurrentPin(e.target.value)}
-                                required
-                            />
-                            </div>
-                            <div className="space-y-2">
-                            <Label htmlFor="new-pin">New PIN</Label>
+                            <Label htmlFor="new-pin">New PIN (min. 4 digits)</Label>
                             <Input
                                 id="new-pin"
                                 type="password"
@@ -184,7 +229,7 @@ export default function SettingsPage() {
                             <div className="flex gap-2">
                                 <Button type="button" variant="outline" onClick={() => setCurrentView('main')} className="w-full">Cancel</Button>
                                 <Button type="submit" disabled={isLoading} className="w-full">
-                                    {isLoading ? 'Saving...' : 'Save Changes'}
+                                    {isLoading ? 'Saving...' : 'Set New PIN'}
                                 </Button>
                             </div>
                         </form>
@@ -208,11 +253,11 @@ export default function SettingsPage() {
             return (
                  <>
                     <CardHeader>
-                        <CardTitle>Change Password</CardTitle>
-                        <CardDescription>Set a new password for your account.</CardDescription>
+                        <CardTitle>Set New Password</CardTitle>
+                        <CardDescription>Set a new password to secure your apps.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <PasswordSetup onPasswordSet={handlePasswordSet} isChangeMode={true} onCancel={() => setCurrentView('main')} />
+                         <PasswordSetup onPasswordSet={handlePasswordSet} isChangeMode={lockType === 'password'} onCancel={() => setCurrentView('main')} />
                     </CardContent>
                 </>
             );
@@ -238,19 +283,25 @@ export default function SettingsPage() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Change Lock Method</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                           Select your new preferred lock method. You will be asked to set it up in the next step.
+                                           Select your new preferred lock method. You will be asked to verify your identity first.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <div className="grid grid-cols-1 gap-4 py-4">
-                                        <Button variant={lockType === 'pin' ? 'default' : 'outline'} size="lg" onClick={() => { setCurrentView('pin'); }}>
-                                            <KeyRound className="mr-2"/> PIN Code
-                                        </Button>
-                                        <Button variant={lockType === 'pattern' ? 'default' : 'outline'} size="lg" onClick={() => { setCurrentView('pattern'); }}>
-                                            <Lock className="mr-2"/> Pattern
-                                        </Button>
-                                        <Button variant={lockType === 'password' ? 'default' : 'outline'} size="lg" onClick={() => { setCurrentView('password'); }}>
-                                            <ShieldQuestion className="mr-2"/> Password
-                                        </Button>
+                                        <AlertDialogAction asChild>
+                                            <Button variant={lockType === 'pin' ? 'default' : 'outline'} size="lg" onClick={() => handleStartChange('pin')}>
+                                                <KeyRound className="mr-2"/> PIN Code
+                                            </Button>
+                                        </AlertDialogAction>
+                                        <AlertDialogAction asChild>
+                                            <Button variant={lockType === 'pattern' ? 'default' : 'outline'} size="lg" onClick={() => handleStartChange('pattern')}>
+                                                <Lock className="mr-2"/> Pattern
+                                            </Button>
+                                        </AlertDialogAction>
+                                        <AlertDialogAction asChild>
+                                             <Button variant={lockType === 'password' ? 'default' : 'outline'} size="lg" onClick={() => handleStartChange('password')}>
+                                                <ShieldQuestion className="mr-2"/> Password
+                                            </Button>
+                                        </AlertDialogAction>
                                     </div>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -302,9 +353,9 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-background text-foreground">
         <Header />
         <main className="container mx-auto max-w-2xl py-8 px-4">
-            <Button variant="ghost" onClick={() => currentView !== 'main' ? setCurrentView('main') : router.back()} className="mb-4">
+             <Button variant="ghost" onClick={() => currentView !== 'main' ? setCurrentView('main') : router.back()} className="mb-4">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
+                {currentView !== 'main' ? 'Back to Settings' : 'Back'}
             </Button>
             <Card>
                 {renderContent()}

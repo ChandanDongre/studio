@@ -15,7 +15,7 @@ interface PasswordSetupProps {
 
 export default function PasswordSetup({ onPasswordSet, isChangeMode = false, onCancel }: PasswordSetupProps) {
   const { toast } = useToast();
-  const { password: storedPassword, checkPassword } = useLock();
+  const { checkPassword } = useLock();
   
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -64,11 +64,12 @@ export default function PasswordSetup({ onPasswordSet, isChangeMode = false, onC
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             required
+            autoFocus
           />
         </div>
       )}
       <div className="space-y-2">
-        <Label htmlFor="new-password">New Password</Label>
+        <Label htmlFor="new-password">New Password (min. 6 characters)</Label>
         <Input
           id="new-password"
           type="password"
@@ -76,6 +77,7 @@ export default function PasswordSetup({ onPasswordSet, isChangeMode = false, onC
           onChange={(e) => setNewPassword(e.target.value)}
           required
           minLength={6}
+          autoFocus={!isChangeMode}
         />
       </div>
       <div className="space-y-2">
@@ -89,7 +91,7 @@ export default function PasswordSetup({ onPasswordSet, isChangeMode = false, onC
           minLength={6}
         />
       </div>
-      <div className="flex flex-col-reverse sm:flex-row gap-2">
+      <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4">
        {onCancel && <Button type="button" variant="outline" onClick={onCancel} className="w-full">Cancel</Button>}
         <Button type="submit" disabled={isLoading} className="w-full">
           {isLoading ? 'Saving...' : isChangeMode ? 'Save Changes' : 'Set Password'}
