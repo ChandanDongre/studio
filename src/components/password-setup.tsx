@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -94,7 +95,7 @@ export default function PasswordSetup({ onPasswordSet, isChangeMode = false, onC
       <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4">
        {onCancel && <Button type="button" variant="outline" onClick={onCancel} className="w-full">Cancel</Button>}
         <Button type="submit" disabled={isLoading} className="w-full">
-          {isLoading ? 'Saving...' : isChangeMode ? 'Save Changes' : 'Set Password'}
+          {isLoading ? 'Saving...' : 'Set Password'}
         </Button>
       </div>
     </form>

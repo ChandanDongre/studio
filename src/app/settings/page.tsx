@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -40,7 +41,6 @@ export default function SettingsPage() {
   const [currentView, setCurrentView] = useState<SecurityView>('main');
   const [nextView, setNextView] = useState<LockMethod | null>(null);
   
-  const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmNewPin, setConfirmNewPin] = useState('');
 
@@ -60,14 +60,8 @@ export default function SettingsPage() {
   }, []);
 
   const handleStartChange = (targetView: LockMethod) => {
-    if (targetView === lockType) {
-        // If changing to the same type, go directly to the setup view
-        setCurrentView(targetView);
-    } else {
-        // If changing to a different type, first authenticate with the current method
-        setNextView(targetView);
-        setCurrentView('authenticate');
-    }
+    setNextView(targetView);
+    setCurrentView('authenticate');
   }
 
   const handleAuthenticationSuccess = () => {
@@ -84,19 +78,6 @@ export default function SettingsPage() {
   const handlePinChange = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // In a real app, you'd have a secure way to verify the current PIN.
-    // For this prototype, we'll compare against the stored one.
-    // This check is primarily for when changing PIN-to-PIN.
-    if (lockType === 'pin' && currentPin !== pin) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Current PIN is incorrect.',
-      });
-      setIsLoading(false);
-      return;
-    }
 
     if (newPin.length < 4) {
         toast({
@@ -125,7 +106,6 @@ export default function SettingsPage() {
       description: 'Your PIN has been set.',
     });
     
-    setCurrentPin('');
     setNewPin('');
     setConfirmNewPin('');
     setIsLoading(false);
@@ -184,24 +164,11 @@ export default function SettingsPage() {
                     <CardHeader>
                         <CardTitle>Set New PIN</CardTitle>
                         <CardDescription>
-                            {lockType === 'pin' ? 'Update your existing PIN.' : 'Set a new PIN to secure your apps.'}
+                            {'Set a new PIN to secure your apps.'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                          <form onSubmit={handlePinChange} className="space-y-4">
-                            {lockType === 'pin' && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="current-pin">Current PIN</Label>
-                                    <Input
-                                        id="current-pin"
-                                        type="password"
-                                        inputMode="numeric"
-                                        value={currentPin}
-                                        onChange={(e) => setCurrentPin(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            )}
                             <div className="space-y-2">
                             <Label htmlFor="new-pin">New PIN (min. 4 digits)</Label>
                             <Input
@@ -257,7 +224,7 @@ export default function SettingsPage() {
                         <CardDescription>Set a new password to secure your apps.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <PasswordSetup onPasswordSet={handlePasswordSet} isChangeMode={lockType === 'password'} onCancel={() => setCurrentView('main')} />
+                         <PasswordSetup onPasswordSet={handlePasswordSet} isChangeMode={false} onCancel={() => setCurrentView('main')} />
                     </CardContent>
                 </>
             );
