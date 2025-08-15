@@ -21,13 +21,7 @@ import { useLock } from '@/hooks/use-lock';
 export default function Header() {
     const router = useRouter();
     const { toast } = useToast();
-    const { startTempUnlock, isTempUnlocked, remainingTempUnlockTime, setTempAuthenticated } = useLock();
-
-    const handleLock = () => {
-        setTempAuthenticated(false);
-        toast({ title: 'Locked', description: 'Your apps are now secured.' });
-        router.push('/lock?redirectTo=/');
-    };
+    const { startTempUnlock, isTempUnlocked, remainingTempUnlockTime } = useLock();
 
     const handleTempUnlock = () => {
         startTempUnlock();
@@ -85,9 +79,10 @@ export default function Header() {
                         <Settings className="h-5 w-5" />
                     </Button>
 
-                    <Button onClick={handleLock} variant="ghost" size="icon" aria-label="Lock App">
+                    {/* This button is not needed if there's no global lock to engage */}
+                    {/* <Button onClick={handleLock} variant="ghost" size="icon" aria-label="Lock App">
                         <LogOut className="h-5 w-5" />
-                    </Button>
+                    </Button> */}
                 </div>
             </div>
         </header>

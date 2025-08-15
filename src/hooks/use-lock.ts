@@ -132,12 +132,8 @@ export const useLock = create<LockState>()(
     {
       name: 'fortress-lock-storage',
       storage: createJSONStorage(() => localStorage),
-      // This function runs after the state has been rehydrated from localStorage
       onRehydrateStorage: () => (state) => {
           if (state) {
-            // This is the crucial fix:
-            // Ensure session authentication is ALWAYS false on initial load.
-            // Then, mark loading as complete so the app can proceed.
             state.tempAuthenticated = false; 
             state.isLoading = false;
           }
@@ -146,20 +142,16 @@ export const useLock = create<LockState>()(
   )
 );
 
-// Initialize the state and start the timer only on the client-side
 if (typeof window !== 'undefined') {
-  // Rehydrate the store on initial load.
   useLock.persist.rehydrate();
+  
+  // No need for visibility change listener if we don't have a global lock
+  // document.addEventListener("visibilitychange", () => {
+  //   if (document.visibilityState === 'hidden') {
+  //     useLock.getState().setTempAuthenticated(false);
+  //   }
+  // });
 
-  // Add a listener to reset authentication when the tab becomes hidden
-  // This locks the app when the user switches tabs or minimizes the window.
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === 'hidden') {
-      useLock.getState().setTempAuthenticated(false);
-    }
-  });
-
-  // Start the timer to periodically update lockout/temp-unlock status
   setInterval(() => {
     useLock.getState()._updateLockoutStatus();
   }, 1000);

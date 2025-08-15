@@ -10,28 +10,19 @@ import { useLock } from '@/hooks/use-lock';
 
 export default function Home() {
   const router = useRouter();
-  const { isSetupComplete, isLoading, isTempAuthenticated } = useLock();
+  const { isSetupComplete, isLoading } = useLock();
 
   useEffect(() => {
-    // Wait until the persisted state is loaded.
     if (isLoading) {
       return;
     }
 
-    // If setup isn't done, go to the welcome screen.
     if (!isSetupComplete) {
       router.replace('/welcome');
-      return;
     }
+  }, [router, isSetupComplete, isLoading]);
 
-    // If setup is done but the user hasn't authenticated this session, go to lock screen.
-    if (!isTempAuthenticated) {
-      router.replace('/lock');
-    }
-  }, [router, isSetupComplete, isLoading, isTempAuthenticated]);
-
-  // While loading or if the user needs to be redirected, show a loading skeleton.
-  if (isLoading || !isSetupComplete || !isTempAuthenticated) {
+  if (isLoading || !isSetupComplete) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-2xl space-y-4">
@@ -43,7 +34,6 @@ export default function Home() {
     );
   }
 
-  // Otherwise, show the main dashboard.
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
