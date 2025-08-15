@@ -50,7 +50,7 @@ export const useLock = create<LockState>()(
       password: DEFAULT_PASSWORD,
       isSetupComplete: false,
       isBiometricsEnabled: true,
-      isLoading: true,
+      isLoading: true, // Start as true until rehydration is complete
       failedAttempts: 0,
       lockoutUntil: null,
       tempUnlockUntil: null,
@@ -64,7 +64,7 @@ export const useLock = create<LockState>()(
       setPin: (pin) => set({ pin, failedAttempts: 0, lockoutUntil: null }),
       setPattern: (pattern) => set({ pattern, failedAttempts: 0, lockoutUntil: null }),
       setPassword: (password) => set({ password, failedAttempts: 0, lockoutUntil: null }),
-      completeSetup: () => set({ isSetupComplete: true }),
+      completeSetup: () => set({ isSetupComplete: true, tempAuthenticated: true }), // Authenticate after setup
       toggleBiometrics: () => set(state => ({ isBiometricsEnabled: !state.isBiometricsEnabled })),
       
       checkPin: (pin) => {
@@ -132,18 +132,25 @@ export const useLock = create<LockState>()(
     {
       name: 'fortress-lock-storage',
       storage: createJSONStorage(() => localStorage),
+      // This function runs after the state has been rehydrated from localStorage
       onRehydrateStorage: () => (state) => {
-          if(state) {
-            state.isLoading = false;
-            // IMPORTANT: Reset session authentication status on app load.
+          if (state) {
+            // This is the crucial fix:
+            // Ensure session authentication is ALWAYS false on initial load.
+            // Then, mark loading as complete so the app can proceed.
             state.tempAuthenticated = false; 
+            state.isLoading = false;
           }
       },
     }
   )
 );
 
+// Initialize the state and start the timer only on the client-side
 if (typeof window !== 'undefined') {
+  // Rehydrate the store on initial load.
+  useLock.persist.rehydrate();
+
   // Add a listener to reset authentication when the tab becomes hidden
   // This locks the app when the user switches tabs or minimizes the window.
   document.addEventListener("visibilitychange", () => {
@@ -152,7 +159,7 @@ if (typeof window !== 'undefined') {
     }
   });
 
-  useLock.persist.rehydrate();
+  // Start the timer to periodically update lockout/temp-unlock status
   setInterval(() => {
     useLock.getState()._updateLockoutStatus();
   }, 1000);
