@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import LockScreen from '@/components/lock-screen';
 import PatternLock from '@/components/pattern-lock';
 import PasswordLock from '@/components/password-lock';
@@ -9,7 +9,7 @@ import { useLock } from '@/hooks/use-lock';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LockPage() {
+function LockPageContent() {
   const { lockType, isLoading, isSetupComplete, isTempAuthenticated } = useLock();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -18,13 +18,11 @@ export default function LockPage() {
   useEffect(() => {
     if (isLoading) return;
     
-    // If setup isn't complete, they shouldn't be on the lock page.
     if (!isSetupComplete) {
       router.replace('/welcome');
       return;
     }
     
-    // If they are already authenticated this session, send them to the destination.
     if (isTempAuthenticated) {
       router.replace(redirectTo);
       return;
@@ -56,4 +54,18 @@ export default function LockPage() {
   if (lockType === 'password') return <PasswordLock onUnlock={onUnlock} />;
 
   return <LockScreen onUnlock={onUnlock} />; // Default fallback
+}
+
+export default function LockPage() {
+    return (
+        <Suspense fallback={
+             <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+                <div className="w-full max-w-sm space-y-4 text-center">
+                    <Skeleton className="mx-auto h-20 w-20 rounded-full" />
+                </div>
+            </div>
+        }>
+            <LockPageContent />
+        </Suspense>
+    )
 }
