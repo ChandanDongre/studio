@@ -54,16 +54,17 @@ export default function AppList() {
     
     const handleAppClick = (app: App) => {
         const isAppIndividuallyLocked = lockedApps.has(app.id);
-        const isGloballyUnlocked = isTempUnlocked || isTempAuthenticated;
+        // A user is considered "authenticated" for the session if they've unlocked globally
+        // OR if they have passed an individual app lock check.
+        const canOpenDirectly = !isAppIndividuallyLocked || isTempUnlocked || isTempAuthenticated;
 
-        if (isAppIndividuallyLocked && !isGloballyUnlocked) {
-            // App is locked, and user is not authenticated for this session.
-            const targetUrl = `/app-launch-success?appName=${encodeURIComponent(app.name)}`;
-            router.push(`/lock?redirectTo=${encodeURIComponent(targetUrl)}`);
-        } else {
-            // App is not locked OR user is authenticated for this session.
-            const targetUrl = `/app-launch-success?appName=${encodeURIComponent(app.name)}`;
+        const targetUrl = `/app-launch-success?appName=${encodeURIComponent(app.name)}`;
+        
+        if (canOpenDirectly) {
             router.push(targetUrl);
+        } else {
+            // App is locked, and user needs to authenticate.
+            router.push(`/lock?redirectTo=${encodeURIComponent(targetUrl)}`);
         }
     };
 

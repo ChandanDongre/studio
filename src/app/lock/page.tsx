@@ -10,36 +10,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function LockPageContent() {
-  const { lockType, isSetupComplete, setTempAuthenticated, isTempAuthenticated } = useLock();
+  const { lockType, setTempAuthenticated, isTempAuthenticated } = useLock();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '/';
 
   useEffect(() => {
-    if (!isSetupComplete) {
-      router.replace('/welcome');
-    }
-    // If user is already authenticated (e.g. via temp unlock), just redirect.
+    // If user is already authenticated (e.g. via a previous unlock), just redirect.
     if (isTempAuthenticated) {
         router.replace(redirectTo);
     }
-  }, [isSetupComplete, isTempAuthenticated, router, redirectTo]);
+  }, [isTempAuthenticated, router, redirectTo]);
 
   const onUnlock = () => {
     // Set temp authenticated state for the session
     setTempAuthenticated(true);
+    // Redirect to the originally intended destination
     router.replace(redirectTo);
   };
-
-  if (!isSetupComplete) {
-     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-        <div className="w-full max-w-sm space-y-4 text-center">
-            <Skeleton className="mx-auto h-20 w-20 rounded-full" />
-        </div>
-      </div>
-    );
-  }
 
   if (lockType === 'pin') return <LockScreen onUnlock={onUnlock} />;
   if (lockType === 'pattern') return <PatternLock onUnlock={onUnlock} />;
@@ -54,6 +42,8 @@ export default function LockPage() {
              <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
                 <div className="w-full max-w-sm space-y-4 text-center">
                     <Skeleton className="mx-auto h-20 w-20 rounded-full" />
+                    <Skeleton className="h-10 w-3/4 mx-auto" />
+                    <Skeleton className="h-40 w-full" />
                 </div>
             </div>
         }>
