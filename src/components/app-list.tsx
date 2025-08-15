@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -17,7 +18,7 @@ export default function AppList() {
     const [isLoaded, setIsLoaded] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
-    const { isTempUnlocked } = useLock();
+    const { isTempUnlocked, setTempAuthenticated, isTempAuthenticated } = useLock();
 
     useEffect(() => {
         try {
@@ -58,17 +59,16 @@ export default function AppList() {
         const isFortressTempUnlocked = isTempUnlocked;
 
         if (isAppIndividuallyLocked && !isFortressTempUnlocked) {
-            // App is locked and there is no temporary unlock active
-            // Redirect to lock screen, passing the app id as a param
-            // So we know where to return to.
+            // App is locked and there is no temporary unlock active.
+            // The main app is already unlocked, so we just need to re-authenticate
+            // for this specific app launch.
             const targetUrl = `/app-launch-success?appName=${encodeURIComponent(app.name)}`;
-             router.push(`/lock?redirectTo=${encodeURIComponent(targetUrl)}`);
+            router.push(`/lock?redirectTo=${encodeURIComponent(targetUrl)}`);
         } else {
-             // If Fortress is temp unlocked, or if the app itself isn't locked, "launch" it.
-             toast({
-                title: `${app.name} Launched`,
-                description: `This is a demo. You have successfully "launched" the app.`,
-            });
+            // The main app is unlocked and this specific app is either not locked
+            // or Fortress is in a temp unlocked state.
+            const targetUrl = `/app-launch-success?appName=${encodeURIComponent(app.name)}`;
+            router.push(targetUrl);
         }
     };
 

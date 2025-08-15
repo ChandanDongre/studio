@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -20,12 +21,12 @@ import { useLock } from '@/hooks/use-lock';
 export default function Header() {
     const router = useRouter();
     const { toast } = useToast();
-    const { startTempUnlock, isTempUnlocked, remainingTempUnlockTime, clearTempAuthentication } = useLock();
+    const { startTempUnlock, isTempUnlocked, remainingTempUnlockTime, setTempAuthenticated } = useLock();
 
     const handleLock = () => {
-        clearTempAuthentication();
+        setTempAuthenticated(false);
         toast({ title: 'Locked', description: 'Your apps are now secured.' });
-        router.push('/'); // Go to home, which no longer requires lock
+        router.push('/lock?redirectTo=/');
     };
 
     const handleTempUnlock = () => {

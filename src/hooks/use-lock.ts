@@ -1,3 +1,4 @@
+
 'use client';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware'
@@ -8,7 +9,6 @@ const DEFAULT_PASSWORD = "password";
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_DURATION_SECONDS = 30;
 const TEMP_UNLOCK_MINUTES = 15;
-const TEMP_AUTH_MINUTES = 1; // How long user stays authenticated after one successful unlock
 
 interface LockState {
   lockType: 'pin' | 'pattern' | 'password';
@@ -21,12 +21,11 @@ interface LockState {
   failedAttempts: number;
   lockoutUntil: number | null; // Timestamp
   tempUnlockUntil: number | null; // Timestamp for global unlock
-  tempAuthenticatedUntil: number | null; // Timestamp for single-session unlock
+  tempAuthenticated: boolean; // Is user authenticated for this session?
   isLockedOut: boolean;
   remainingLockoutTime: number;
   isTempUnlocked: boolean;
   remainingTempUnlockTime: number;
-  isTempAuthenticated: boolean;
   setLockType: (type: 'pin' | 'pattern' | 'password') => void;
   setPin: (pin: string) => void;
   setPattern: (pattern: number[]) => void;
@@ -38,8 +37,7 @@ interface LockState {
   checkPattern: (pattern: number[]) => boolean;
   wrongAttempt: () => void;
   startTempUnlock: () => void;
-  setTempAuthenticated: () => void;
-  clearTempAuthentication: () => void;
+  setTempAuthenticated: (isAuthenticated: boolean) => void;
   _updateLockoutStatus: () => void;
 }
 
@@ -56,12 +54,11 @@ export const useLock = create<LockState>()(
       failedAttempts: 0,
       lockoutUntil: null,
       tempUnlockUntil: null,
-      tempAuthenticatedUntil: null,
+      tempAuthenticated: false,
       isLockedOut: false,
       remainingLockoutTime: 0,
       isTempUnlocked: false,
       remainingTempUnlockTime: 0,
-      isTempAuthenticated: false,
       
       setLockType: (type) => set({ lockType: type }),
       setPin: (pin) => set({ pin, failedAttempts: 0, lockoutUntil: null }),
@@ -103,17 +100,13 @@ export const useLock = create<LockState>()(
       },
       startTempUnlock: () => {
         const tempUnlockUntil = Date.now() + TEMP_UNLOCK_MINUTES * 60 * 1000;
-        set({ tempUnlockUntil, tempAuthenticatedUntil: null });
+        set({ tempUnlockUntil, tempAuthenticated: true }); // Also authenticate
       },
-      setTempAuthenticated: () => {
-        const tempAuthenticatedUntil = Date.now() + TEMP_AUTH_MINUTES * 60 * 1000;
-        set({ tempAuthenticatedUntil });
-      },
-      clearTempAuthentication: () => {
-        set({ tempAuthenticatedUntil: null });
+      setTempAuthenticated: (isAuthenticated) => {
+        set({ tempAuthenticated: isAuthenticated });
       },
       _updateLockoutStatus: () => {
-        const { lockoutUntil, tempUnlockUntil, tempAuthenticatedUntil } = get();
+        const { lockoutUntil, tempUnlockUntil } = get();
         const now = Date.now();
         
         // Handle Lockout
@@ -134,27 +127,31 @@ export const useLock = create<LockState>()(
         } else if (get().isTempUnlocked) {
           set({ isTempUnlocked: false, remainingTempUnlockTime: 0, tempUnlockUntil: null });
         }
-
-        // Handle Session Authentication
-        const isTempAuthenticated = tempAuthenticatedUntil ? now < tempAuthenticatedUntil : false;
-         if (!isTempAuthenticated && get().isTempAuthenticated) {
-            set({ isTempAuthenticated: false, tempAuthenticatedUntil: null });
-         } else if (isTempAuthenticated && !get().isTempAuthenticated) {
-            set({ isTempAuthenticated: true });
-         }
       }
     }),
     {
       name: 'fortress-lock-storage',
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
-          if(state) state.isLoading = false;
+          if(state) {
+            state.isLoading = false;
+            // IMPORTANT: Reset session authentication status on app load.
+            state.tempAuthenticated = false; 
+          }
       },
     }
   )
 );
 
 if (typeof window !== 'undefined') {
+  // Add a listener to reset authentication when the tab becomes hidden
+  // This locks the app when the user switches tabs or minimizes the window.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === 'hidden') {
+      useLock.getState().setTempAuthenticated(false);
+    }
+  });
+
   useLock.persist.rehydrate();
   setInterval(() => {
     useLock.getState()._updateLockoutStatus();

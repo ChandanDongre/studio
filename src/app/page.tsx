@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,20 +10,28 @@ import { useLock } from '@/hooks/use-lock';
 
 export default function Home() {
   const router = useRouter();
+  const { isSetupComplete, isTempAuthenticated } = useLock();
   const [isLoading, setIsLoading] = useState(true);
-  const { isSetupComplete } = useLock();
 
   useEffect(() => {
-    // Only check if setup is complete.
-    // The main page is no longer guarded by a global lock.
     if (!isSetupComplete) {
       router.replace('/welcome');
-    } else {
-      setIsLoading(false);
+      return;
     }
-  }, [router, isSetupComplete]);
+    
+    // If setup is complete but the user is not authenticated for this session,
+    // redirect them to the lock screen.
+    if (!isTempAuthenticated) {
+        router.replace('/lock?redirectTo=/');
+        return;
+    }
 
-  if (isLoading || !isSetupComplete) {
+    // If we've made it this far, the user is set up and authenticated.
+    setIsLoading(false);
+
+  }, [router, isSetupComplete, isTempAuthenticated]);
+
+  if (isLoading || !isSetupComplete || !isTempAuthenticated) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-2xl space-y-4">

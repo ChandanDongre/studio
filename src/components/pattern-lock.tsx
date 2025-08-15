@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { ShieldCheck, Fingerprint } from 'lucide-react';
@@ -26,7 +27,7 @@ export default function PatternLock({ onUnlock, isPage = true }: PatternLockProp
     const isCorrect = checkPattern(completedPattern);
     
     if (isCorrect) {
-      setTempAuthenticated();
+      setTempAuthenticated(true);
       onUnlock();
     } else {
         wrongAttempt();
@@ -46,7 +47,7 @@ export default function PatternLock({ onUnlock, isPage = true }: PatternLockProp
         title: "Biometric Scan Success",
         description: "Unlocked via fingerprint.",
     })
-    setTempAuthenticated();
+    setTempAuthenticated(true);
     onUnlock();
   }
 

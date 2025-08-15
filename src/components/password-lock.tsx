@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,7 +36,7 @@ export default function PasswordLock({ onUnlock, isPage = true }: PasswordLockPr
         await new Promise(resolve => setTimeout(resolve, 300));
 
         if (checkPassword(password)) {
-            setTempAuthenticated();
+            setTempAuthenticated(true);
             onUnlock();
         } else {
             wrongAttempt();
@@ -53,7 +54,7 @@ export default function PasswordLock({ onUnlock, isPage = true }: PasswordLockPr
             title: "Biometric Scan Success",
             description: "Unlocked via fingerprint.",
         });
-        setTempAuthenticated();
+        setTempAuthenticated(true);
         onUnlock();
     }
 

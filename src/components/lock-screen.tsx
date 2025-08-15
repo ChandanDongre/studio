@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
@@ -31,7 +32,7 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
             inputRefs.current = new Array(correctPin.length).fill(null);
             inputRefs.current[0]?.focus();
         }
-    }, [correctPin, isClient]);
+    }, [correctPin.length, isClient]);
 
     const handlePinChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
         const value = e.target.value;
@@ -65,7 +66,7 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
         await new Promise(resolve => setTimeout(resolve, 300));
 
         if (checkPin(fullPin)) {
-            setTempAuthenticated();
+            setTempAuthenticated(true);
             onUnlock();
         } else {
             wrongAttempt();
@@ -84,7 +85,7 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
             title: "Biometric Scan Success",
             description: "Unlocked via fingerprint.",
         });
-        setTempAuthenticated();
+        setTempAuthenticated(true);
         onUnlock();
     }
 
