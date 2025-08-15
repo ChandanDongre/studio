@@ -7,18 +7,33 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, KeyRound, Lock, ShieldQuestion } from 'lucide-react';
+import { ArrowLeft, KeyRound, Lock, ShieldQuestion, Fingerprint } from 'lucide-react';
 import Header from '@/components/header';
 import { useLock } from '@/hooks/use-lock';
 import PatternSetup from '@/components/pattern-setup';
 import PasswordSetup from '@/components/password-setup';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
+type SecurityView = 'main' | 'pin' | 'pattern' | 'password';
 
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { lockType, setLockType, setPin, setPattern, setPassword, pin } = useLock();
+  const { lockType, setLockType, setPin, setPattern, setPassword, pin, isBiometricsEnabled, toggleBiometrics } = useLock();
+  
+  const [currentView, setCurrentView] = useState<SecurityView>('main');
   
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -35,6 +50,11 @@ export default function SettingsPage() {
       setIsAuthenticated(true);
     }
   }, [router]);
+  
+   useEffect(() => {
+    // Reset view if user navigates away and comes back
+    setCurrentView('main');
+  }, []);
 
   const handlePinChange = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -73,33 +93,190 @@ export default function SettingsPage() {
     }
 
     setPin(newPin);
+    setLockType('pin');
     toast({
       title: 'Success!',
       description: 'Your PIN has been updated.',
     });
     
-    // Reset form
     setCurrentPin('');
     setNewPin('');
     setConfirmNewPin('');
     setIsLoading(false);
+    setCurrentView('main');
   };
 
   const handlePatternSet = (pattern: number[]) => {
     setPattern(pattern);
-     toast({
+    setLockType('pattern');
+    toast({
       title: 'Success!',
       description: 'Your pattern has been updated.',
     });
+    setCurrentView('main');
   }
 
   const handlePasswordSet = (newPassword: string) => {
     setPassword(newPassword);
+    setLockType('password');
     toast({
       title: 'Success!',
       description: 'Your password has been updated.',
     });
+    setCurrentView('main');
   }
+  
+  const getLockTypeDescription = () => {
+    switch (lockType) {
+      case 'pin': return 'PIN Code';
+      case 'pattern': return 'Pattern Lock';
+      case 'password': return 'Password';
+      default: return 'Unknown';
+    }
+  };
+
+  const renderContent = () => {
+    switch(currentView) {
+        case 'pin':
+            return (
+                <>
+                    <CardHeader>
+                        <CardTitle>Change PIN</CardTitle>
+                        <CardDescription>Update your existing PIN.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <form onSubmit={handlePinChange} className="space-y-4">
+                            <div className="space-y-2">
+                            <Label htmlFor="current-pin">Current PIN</Label>
+                            <Input
+                                id="current-pin"
+                                type="password"
+                                inputMode="numeric"
+                                value={currentPin}
+                                onChange={(e) => setCurrentPin(e.target.value)}
+                                required
+                            />
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="new-pin">New PIN</Label>
+                            <Input
+                                id="new-pin"
+                                type="password"
+                                inputMode="numeric"
+                                value={newPin}
+                                onChange={(e) => setNewPin(e.target.value)}
+                                required
+                                minLength={4}
+                            />
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="confirm-new-pin">Confirm New PIN</Label>
+                            <Input
+                                id="confirm-new-pin"
+                                type="password"
+                                inputMode="numeric"
+                                value={confirmNewPin}
+                                onChange={(e) => setConfirmNewPin(e.target.value)}
+                                required
+                                minLength={4}
+                            />
+                            </div>
+                            <div className="flex gap-2">
+                                <Button type="button" variant="outline" onClick={() => setCurrentView('main')} className="w-full">Cancel</Button>
+                                <Button type="submit" disabled={isLoading} className="w-full">
+                                    {isLoading ? 'Saving...' : 'Save Changes'}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </>
+            );
+        case 'pattern':
+            return (
+                <>
+                    <CardHeader>
+                        <CardTitle>Set New Pattern</CardTitle>
+                        <CardDescription>Draw your new unlock pattern.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center">
+                        <PatternSetup onPatternSet={handlePatternSet} />
+                        <Button type="button" variant="outline" onClick={() => setCurrentView('main')} className="w-full mt-4 max-w-sm">Cancel</Button>
+                    </CardContent>
+                </>
+            );
+        case 'password':
+            return (
+                 <>
+                    <CardHeader>
+                        <CardTitle>Change Password</CardTitle>
+                        <CardDescription>Set a new password for your account.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <PasswordSetup onPasswordSet={handlePasswordSet} isChangeMode={true} onCancel={() => setCurrentView('main')} />
+                    </CardContent>
+                </>
+            );
+        case 'main':
+        default:
+            return (
+                 <>
+                    <CardHeader>
+                        <CardTitle>Security Settings</CardTitle>
+                        <CardDescription>Manage your lock type and credentials.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div>
+                                <h3 className="font-medium">Lock Method</h3>
+                                <p className="text-sm text-muted-foreground">{getLockTypeDescription()}</p>
+                            </div>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="outline">Change</Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Change Lock Method</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                           Select your new preferred lock method. You will be asked to set it up in the next step.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <div className="grid grid-cols-1 gap-4 py-4">
+                                        <Button variant={lockType === 'pin' ? 'default' : 'outline'} size="lg" onClick={() => { setCurrentView('pin'); }}>
+                                            <KeyRound className="mr-2"/> PIN Code
+                                        </Button>
+                                        <Button variant={lockType === 'pattern' ? 'default' : 'outline'} size="lg" onClick={() => { setCurrentView('pattern'); }}>
+                                            <Lock className="mr-2"/> Pattern
+                                        </Button>
+                                        <Button variant={lockType === 'password' ? 'default' : 'outline'} size="lg" onClick={() => { setCurrentView('password'); }}>
+                                            <ShieldQuestion className="mr-2"/> Password
+                                        </Button>
+                                    </div>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                         <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div>
+                                <h3 className="font-medium">Fingerprint Unlock</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    {isBiometricsEnabled ? 'Enabled' : 'Disabled'}
+                                </p>
+                            </div>
+                             <Switch
+                                checked={isBiometricsEnabled}
+                                onCheckedChange={toggleBiometrics}
+                                aria-label="Toggle Fingerprint Unlock"
+                            />
+                        </div>
+                    </CardContent>
+                </>
+            )
+    }
+  }
+
 
   if (!isAuthenticated) {
     return (
@@ -112,8 +289,8 @@ export default function SettingsPage() {
                         <Skeleton className="h-4 w-48" />
                     </CardHeader>
                     <CardContent>
-                        <Skeleton className="h-10 w-full" />
-                        <Skeleton className="h-32 w-full mt-4" />
+                        <Skeleton className="h-24 w-full mt-4" />
+                        <Skeleton className="h-24 w-full mt-4" />
                     </CardContent>
                 </Card>
             </div>
@@ -125,75 +302,12 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-background text-foreground">
         <Header />
         <main className="container mx-auto max-w-2xl py-8 px-4">
-            <Button variant="ghost" onClick={() => router.back()} className="mb-4">
+            <Button variant="ghost" onClick={() => currentView !== 'main' ? setCurrentView('main') : router.back()} className="mb-4">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
             </Button>
             <Card>
-                <CardHeader>
-                    <CardTitle>Security Settings</CardTitle>
-                    <CardDescription>Manage your lock type and credentials.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Tabs value={lockType} onValueChange={(value) => setLockType(value as 'pin' | 'pattern' | 'password')} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="pin"><KeyRound className="mr-2"/> PIN Lock</TabsTrigger>
-                            <TabsTrigger value="pattern"><Lock className="mr-2"/> Pattern Lock</TabsTrigger>
-                            <TabsTrigger value="password"><ShieldQuestion className="mr-2"/> Password</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="pin" className="pt-4">
-                            <h3 className="text-lg font-medium mb-4">Change PIN</h3>
-                             <form onSubmit={handlePinChange} className="space-y-4">
-                                <div className="space-y-2">
-                                <Label htmlFor="current-pin">Current PIN</Label>
-                                <Input
-                                    id="current-pin"
-                                    type="password"
-                                    inputMode="numeric"
-                                    value={currentPin}
-                                    onChange={(e) => setCurrentPin(e.target.value)}
-                                    required
-                                />
-                                </div>
-                                <div className="space-y-2">
-                                <Label htmlFor="new-pin">New PIN</Label>
-                                <Input
-                                    id="new-pin"
-                                    type="password"
-                                    inputMode="numeric"
-                                    value={newPin}
-                                    onChange={(e) => setNewPin(e.target.value)}
-                                    required
-                                    minLength={4}
-                                />
-                                </div>
-                                <div className="space-y-2">
-                                <Label htmlFor="confirm-new-pin">Confirm New PIN</Label>
-                                <Input
-                                    id="confirm-new-pin"
-                                    type="password"
-                                    inputMode="numeric"
-                                    value={confirmNewPin}
-                                    onChange={(e) => setConfirmNewPin(e.target.value)}
-                                    required
-                                    minLength={4}
-                                />
-                                </div>
-                                <Button type="submit" disabled={isLoading} className="w-full">
-                                {isLoading ? 'Saving...' : 'Save Changes'}
-                                </Button>
-                            </form>
-                        </TabsContent>
-                        <TabsContent value="pattern" className="pt-4">
-                            <h3 className="text-lg font-medium mb-4">Set New Pattern</h3>
-                            <PatternSetup onPatternSet={handlePatternSet} />
-                        </TabsContent>
-                        <TabsContent value="password" className="pt-4">
-                             <h3 className="text-lg font-medium mb-4">Change Password</h3>
-                             <PasswordSetup onPasswordSet={handlePasswordSet} isChangeMode={true} />
-                        </TabsContent>
-                    </Tabs>
-                </CardContent>
+                {renderContent()}
             </Card>
         </main>
     </div>

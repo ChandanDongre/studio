@@ -10,7 +10,7 @@ import PatternGrid from './pattern-grid';
 export default function PatternLock() {
   const router = useRouter();
   const { toast } = useToast();
-  const { checkPattern, wrongAttempt, isLockedOut, remainingLockoutTime } = useLock();
+  const { checkPattern, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled } = useLock();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -70,10 +70,12 @@ export default function PatternLock() {
             </div>
 
             <div className="flex flex-col items-center gap-4">
-                <button onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground" disabled={isLockedOut}>
-                    <Fingerprint className="h-6 w-6 text-accent" />
-                    <span>Use Fingerprint</span>
-                </button>
+                {isBiometricsEnabled && (
+                    <button onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground" disabled={isLockedOut}>
+                        <Fingerprint className="h-6 w-6 text-accent" />
+                        <span>Use Fingerprint</span>
+                    </button>
+                )}
             </div>
         </div>
     </div>

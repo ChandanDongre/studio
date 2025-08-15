@@ -10,9 +10,10 @@ import { useLock } from '@/hooks/use-lock';
 interface PasswordSetupProps {
   onPasswordSet: (password: string) => void;
   isChangeMode?: boolean;
+  onCancel?: () => void;
 }
 
-export default function PasswordSetup({ onPasswordSet, isChangeMode = false }: PasswordSetupProps) {
+export default function PasswordSetup({ onPasswordSet, isChangeMode = false, onCancel }: PasswordSetupProps) {
   const { toast } = useToast();
   const { password: storedPassword, checkPassword } = useLock();
   
@@ -88,9 +89,12 @@ export default function PasswordSetup({ onPasswordSet, isChangeMode = false }: P
           minLength={6}
         />
       </div>
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Saving...' : isChangeMode ? 'Save Changes' : 'Set Password'}
-      </Button>
+      <div className="flex flex-col-reverse sm:flex-row gap-2">
+       {onCancel && <Button type="button" variant="outline" onClick={onCancel} className="w-full">Cancel</Button>}
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? 'Saving...' : isChangeMode ? 'Save Changes' : 'Set Password'}
+        </Button>
+      </div>
     </form>
   );
 }

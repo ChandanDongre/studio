@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLock } from '@/hooks/use-lock';
 
 export default function LockScreen() {
-    const { pin: correctPin, checkPin, wrongAttempt, isLockedOut, remainingLockoutTime } = useLock();
+    const { pin: correctPin, checkPin, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled } = useLock();
     const [pin, setPin] = useState<string[]>(new Array(correctPin.length).fill(''));
     const [isChecking, setIsChecking] = useState(false);
     const [showError, setShowError] = useState(false);
@@ -121,10 +121,12 @@ export default function LockScreen() {
                 </div>
 
                 <div className="flex flex-col items-center gap-4">
-                    <Button variant="ghost" onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground" disabled={isLockedOut}>
-                        <Fingerprint className="h-6 w-6 text-accent" />
-                        <span>Use Fingerprint</span>
-                    </Button>
+                    {isBiometricsEnabled && (
+                        <Button variant="ghost" onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground" disabled={isLockedOut}>
+                            <Fingerprint className="h-6 w-6 text-accent" />
+                            <span>Use Fingerprint</span>
+                        </Button>
+                    )}
                 </div>
             </div>
         </div>

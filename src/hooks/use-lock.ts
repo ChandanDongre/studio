@@ -15,6 +15,7 @@ interface LockState {
   pattern: number[];
   password: string;
   isSetupComplete: boolean;
+  isBiometricsEnabled: boolean;
   isLoading: boolean;
   failedAttempts: number;
   lockoutUntil: number | null; // Timestamp
@@ -28,6 +29,7 @@ interface LockState {
   setPattern: (pattern: number[]) => void;
   setPassword: (password: string) => void;
   completeSetup: () => void;
+  toggleBiometrics: () => void;
   checkPin: (pin: string) => boolean;
   checkPassword: (password: string) => boolean;
   checkPattern: (pattern: number[]) => boolean;
@@ -44,6 +46,7 @@ export const useLock = create<LockState>()(
       pattern: DEFAULT_PATTERN,
       password: DEFAULT_PASSWORD,
       isSetupComplete: false,
+      isBiometricsEnabled: true,
       isLoading: true,
       failedAttempts: 0,
       lockoutUntil: null,
@@ -58,6 +61,7 @@ export const useLock = create<LockState>()(
       setPattern: (pattern) => set({ pattern, failedAttempts: 0, lockoutUntil: null }),
       setPassword: (password) => set({ password, failedAttempts: 0, lockoutUntil: null }),
       completeSetup: () => set({ isSetupComplete: true }),
+      toggleBiometrics: () => set(state => ({ isBiometricsEnabled: !state.isBiometricsEnabled })),
       
       checkPin: (pin) => {
         const isCorrect = pin === get().pin;
