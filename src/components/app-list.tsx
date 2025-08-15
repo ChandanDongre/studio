@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useLock } from '@/hooks/use-lock';
 
 const LOCKED_APPS_STORAGE_KEY = 'fortress-locked-apps';
 
@@ -16,6 +17,7 @@ export default function AppList() {
     const [isLoaded, setIsLoaded] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
+    const { isTempUnlocked } = useLock();
 
     useEffect(() => {
         try {
@@ -52,15 +54,15 @@ export default function AppList() {
     };
     
     const handleAppClick = (app: App) => {
-        const isLocked = lockedApps.has(app.id);
-        if (isLocked) {
-             toast({
-                title: "App Locked",
-                description: `You need to unlock Fortress to open ${app.name}.`,
-            });
-            localStorage.setItem('fortress-unlocked', 'false');
+        const isAppIndividuallyLocked = lockedApps.has(app.id);
+        const isFortressUnlocked = localStorage.getItem('fortress-unlocked') === 'true' || isTempUnlocked;
+
+        if (isAppIndividuallyLocked && !isFortressUnlocked) {
+             // This case should theoretically not be hit if the main page guard is working,
+             // but as a fallback, we redirect to lock.
             router.push('/lock');
         } else {
+             // If Fortress is unlocked, or if the app itself isn't locked, "launch" it.
              toast({
                 title: `${app.name} Launched`,
                 description: `This is a demo. You have successfully "launched" the app.`,
