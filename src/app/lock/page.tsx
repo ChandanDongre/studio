@@ -19,7 +19,12 @@ function LockPageContent() {
   // and somehow lands on the lock page, immediately send them to their destination.
   useEffect(() => {
     if (isTempAuthenticated && redirectTo) {
-        router.replace(redirectTo);
+        // This is a simulation, so we just show a success message.
+        // In a real app, you would deeplink to the actual app.
+        const appName = new URLSearchParams(new URL(redirectTo, 'http://localhost').search).get('appName');
+        alert(`Simulating opening ${appName || 'the app'} directly.`);
+        // Then redirect to the dashboard.
+        router.replace('/');
     }
   }, [isTempAuthenticated, router, redirectTo]);
 
@@ -28,7 +33,12 @@ function LockPageContent() {
     setTempAuthenticated(true);
     // Redirect to the originally intended destination after a successful unlock
     if (redirectTo) {
-        router.replace(redirectTo);
+        // This is a simulation. In a real scenario, you'd use a deeplink or other mechanism
+        // to open the actual application that was locked.
+        const appName = new URLSearchParams(new URL(redirectTo, 'http://localhost').search).get('appName');
+        alert(`Success! Simulating opening of ${appName}.`);
+        // After "opening" the app, we return to the Fortress dashboard.
+        router.replace('/');
     } else {
         // Fallback to dashboard if redirectTo is missing for some reason
         router.replace('/');
