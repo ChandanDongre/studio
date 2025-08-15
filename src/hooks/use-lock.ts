@@ -37,6 +37,7 @@ interface LockState {
   checkPattern: (pattern: number[]) => boolean;
   wrongAttempt: () => void;
   startTempUnlock: () => void;
+  cancelTempUnlock: () => void;
   setTempAuthenticated: (isAuthenticated: boolean) => void;
   logout: () => void; // Explicitly log out of the session
   reset: () => void; // Reset all state to initial values
@@ -107,6 +108,9 @@ export const useLock = create<LockState>()(
       startTempUnlock: () => {
         const tempUnlockUntil = Date.now() + TEMP_UNLOCK_MINUTES * 60 * 1000;
         set({ tempUnlockUntil, isTempAuthenticated: true }); // Also authenticate for the session
+      },
+      cancelTempUnlock: () => {
+        set({ tempUnlockUntil: null, isTempUnlocked: false, remainingTempUnlockTime: 0 });
       },
       setTempAuthenticated: (isAuthenticated) => {
         set({ isTempAuthenticated: isAuthenticated });

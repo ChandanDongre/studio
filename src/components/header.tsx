@@ -3,7 +3,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Timer, Settings } from 'lucide-react';
+import { LogOut, Shield, Timer, Settings, XCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +21,7 @@ import { useLock } from '@/hooks/use-lock';
 export default function Header() {
     const router = useRouter();
     const { toast } = useToast();
-    const { startTempUnlock, isTempUnlocked, remainingTempUnlockTime } = useLock();
+    const { startTempUnlock, isTempUnlocked, remainingTempUnlockTime, cancelTempUnlock } = useLock();
 
     const handleTempUnlock = () => {
         startTempUnlock();
@@ -29,6 +29,15 @@ export default function Header() {
             title: "Temporary Unlock Activated",
             description: "Security is paused for 15 minutes.",
             duration: 5000,
+        });
+    };
+    
+    const handleLockNow = () => {
+        cancelTempUnlock();
+        toast({
+            title: "Apps Locked",
+            description: "Temporary unlock has been canceled.",
+            duration: 3000,
         });
     };
 
@@ -47,42 +56,41 @@ export default function Header() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {isTempUnlocked && (
-                         <div className="text-sm font-mono text-accent tabular-nums">
-                            <Timer className="inline h-4 w-4 mr-1" />
-                            {formatTime(remainingTempUnlockTime)}
-                         </div>
-                    )}
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                             <Button variant="ghost" size="icon" aria-label="Temporary Unlock" disabled={isTempUnlocked}>
-                                <Timer className="h-5 w-5 text-accent" />
+                    {isTempUnlocked ? (
+                         <div className="flex items-center gap-2 text-sm font-mono text-accent tabular-nums">
+                            <Timer className="inline h-4 w-4" />
+                            <span>{formatTime(remainingTempUnlockTime)}</span>
+                            <Button onClick={handleLockNow} variant="ghost" size="icon" aria-label="Lock Now" className="h-8 w-8 text-accent">
+                                <XCircle className="h-5 w-5" />
                             </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Temporary Unlock?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will disable all app locks for 15 minutes. Are you sure you want to proceed?
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleTempUnlock} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                                    Proceed
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                         </div>
+                    ) : (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                 <Button variant="ghost" size="icon" aria-label="Temporary Unlock" disabled={isTempUnlocked}>
+                                    <Timer className="h-5 w-5 text-accent" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Temporary Unlock?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will disable all app locks for 15 minutes. Are you sure you want to proceed?
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleTempUnlock} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                                        Proceed
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
 
                     <Button onClick={() => router.push('/settings')} variant="ghost" size="icon" aria-label="Settings">
                         <Settings className="h-5 w-5" />
                     </Button>
-
-                    {/* This button is not needed if there's no global lock to engage */}
-                    {/* <Button onClick={handleLock} variant="ghost" size="icon" aria-label="Lock App">
-                        <LogOut className="h-5 w-5" />
-                    </Button> */}
                 </div>
             </div>
         </header>
