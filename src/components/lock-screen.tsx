@@ -121,7 +121,7 @@ export default function LockScreen({ onUnlock, isPage = true }: LockScreenProps)
                         onChange={(e) => handlePinChange(e, index)}
                         onKeyDown={(e) => handleKeyDown(e, index)}
                         disabled={isChecking || isLockedOut}
-                        className="h-14 w-14 rounded-lg border bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary disabled:opacity-50"
+                        className="h-14 w-14 rounded-lg border border-white/20 bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary disabled:opacity-50"
                     />
                 ))}
             </div>
