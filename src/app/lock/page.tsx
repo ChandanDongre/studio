@@ -9,19 +9,29 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LockPage() {
-  const { lockType, isLoading, isSetupComplete } = useLock();
+  const { lockType, isLoading, isSetupComplete, isTempAuthenticated } = useLock();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '/';
 
   useEffect(() => {
+    if (isLoading) return;
+    
     // If setup isn't complete, they shouldn't be on the lock page.
     if (!isSetupComplete) {
       router.replace('/welcome');
+      return;
     }
-  }, [isSetupComplete, router]);
+    
+    // If they are already authenticated this session, send them to the destination.
+    if (isTempAuthenticated) {
+      router.replace(redirectTo);
+      return;
+    }
 
-  if (isLoading) {
+  }, [isSetupComplete, isTempAuthenticated, isLoading, router, redirectTo]);
+
+  if (isLoading || !isSetupComplete) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-sm space-y-4 text-center">

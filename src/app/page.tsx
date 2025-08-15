@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppList from '@/components/app-list';
 import Header from '@/components/header';
@@ -10,33 +10,21 @@ import { useLock } from '@/hooks/use-lock';
 
 export default function Home() {
   const router = useRouter();
-  const { isSetupComplete, isTempAuthenticated, isLoading: isLockLoading } = useLock();
-  const [isPageLoading, setIsPageLoading] = useState(true);
+  const { isSetupComplete, isTempAuthenticated, isLoading } = useLock();
 
   useEffect(() => {
-    // If the hook is still rehydrating its state from storage, wait.
-    if (isLockLoading) {
+    if (isLoading) {
       return;
     }
 
     if (!isSetupComplete) {
       router.replace('/welcome');
-      return;
+    } else if (!isTempAuthenticated) {
+      router.replace('/lock');
     }
-    
-    // If setup is complete but the user is not authenticated for this session,
-    // redirect them to the lock screen.
-    if (!isTempAuthenticated) {
-        router.replace('/lock?redirectTo=/');
-        return;
-    }
+  }, [router, isSetupComplete, isTempAuthenticated, isLoading]);
 
-    // If we've made it this far, the user is set up and authenticated.
-    setIsPageLoading(false);
-
-  }, [router, isSetupComplete, isTempAuthenticated, isLockLoading]);
-
-  if (isPageLoading || isLockLoading || !isSetupComplete || !isTempAuthenticated) {
+  if (isLoading || !isSetupComplete || !isTempAuthenticated) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-2xl space-y-4">
