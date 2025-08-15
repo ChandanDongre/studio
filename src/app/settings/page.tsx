@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, KeyRound, Lock, ShieldQuestion, Fingerprint } from 'lucide-react';
+import { ArrowLeft, KeyRound, Lock, ShieldQuestion, Fingerprint, LogOut } from 'lucide-react';
 import Header from '@/components/header';
 import { useLock } from '@/hooks/use-lock';
 import PatternSetup from '@/components/pattern-setup';
@@ -37,7 +37,7 @@ const PIN_LENGTH = 4;
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { lockType, setLockType, setPin, setPattern, setPassword, isBiometricsEnabled, toggleBiometrics, isSetupComplete } = useLock();
+  const { lockType, setLockType, setPin, setPattern, setPassword, isBiometricsEnabled, toggleBiometrics, isSetupComplete, reset } = useLock();
   
   const [currentView, setCurrentView] = useState<SecurityView>('main');
   const [nextView, setNextView] = useState<LockMethod | null>(null);
@@ -165,6 +165,15 @@ export default function SettingsPage() {
       description: 'Your password has been set.',
     });
     setCurrentView('main');
+  }
+
+  const handleResetApp = () => {
+    reset();
+    toast({
+      title: 'Application Reset',
+      description: 'All your settings have been cleared.'
+    });
+    router.replace('/welcome');
   }
   
   const getLockTypeDescription = () => {
@@ -336,6 +345,27 @@ export default function SettingsPage() {
                                 aria-label="Toggle Fingerprint Unlock"
                             />
                         </div>
+                        <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" className="w-full">
+                                        <LogOut className="mr-2 h-4 w-4" /> Reset App
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete all your Fortress settings, including your PIN, pattern, and locked app configurations.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleResetApp} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                            Yes, reset everything
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                     </CardContent>
                 </>
             )

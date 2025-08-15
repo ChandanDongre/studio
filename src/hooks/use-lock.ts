@@ -39,27 +39,32 @@ interface LockState {
   startTempUnlock: () => void;
   setTempAuthenticated: (isAuthenticated: boolean) => void;
   logout: () => void; // Explicitly log out of the session
+  reset: () => void; // Reset all state to initial values
   _updateStatus: () => void; // Internal function to update timers
 }
+
+const initialState = {
+    lockType: 'pin' as 'pin' | 'pattern' | 'password',
+    pin: DEFAULT_PIN,
+    pattern: DEFAULT_PATTERN,
+    password: DEFAULT_PASSWORD,
+    isSetupComplete: false,
+    isBiometricsEnabled: true,
+    isLoading: true,
+    failedAttempts: 0,
+    lockoutUntil: null,
+    tempUnlockUntil: null,
+    isTempAuthenticated: false,
+    isLockedOut: false,
+    remainingLockoutTime: 0,
+    isTempUnlocked: false,
+    remainingTempUnlockTime: 0,
+};
 
 export const useLock = create<LockState>()(
   persist(
     (set, get) => ({
-      lockType: 'pin',
-      pin: DEFAULT_PIN,
-      pattern: DEFAULT_PATTERN,
-      password: DEFAULT_PASSWORD,
-      isSetupComplete: false,
-      isBiometricsEnabled: true,
-      isLoading: true, // Start as true until rehydration is complete
-      failedAttempts: 0,
-      lockoutUntil: null,
-      tempUnlockUntil: null,
-      isTempAuthenticated: false,
-      isLockedOut: false,
-      remainingLockoutTime: 0,
-      isTempUnlocked: false,
-      remainingTempUnlockTime: 0,
+        ...initialState,
       
       setLockType: (type) => set({ lockType: type }),
       setPin: (pin) => set({ pin, failedAttempts: 0, lockoutUntil: null }),
@@ -108,6 +113,9 @@ export const useLock = create<LockState>()(
       },
       logout: () => {
         set({ isTempAuthenticated: false, tempUnlockUntil: null, isTempUnlocked: false, remainingTempUnlockTime: 0 });
+      },
+      reset: () => {
+        set({ ...initialState, isLoading: false, isTempAuthenticated: false });
       },
       _updateStatus: () => {
         const { lockoutUntil, tempUnlockUntil } = get();
