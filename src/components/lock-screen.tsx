@@ -6,77 +6,63 @@ import { Button } from '@/components/ui/button';
 import { Fingerprint, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-
-const DEFAULT_PIN = "1234";
-const PIN_STORAGE_KEY = 'fortress-pin';
+import { useLock } from '@/hooks/use-lock';
 
 export default function LockScreen() {
-    const [correctPin, setCorrectPin] = useState(DEFAULT_PIN);
-    const [pin, setPin] = useState<string[]>([]);
+    const { pin: correctPin, checkPin } = useLock();
+    const [pin, setPin] = useState<string[]>(new Array(correctPin.length).fill(''));
     const [isChecking, setIsChecking] = useState(false);
     const [showError, setShowError] = useState(false);
-    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const inputRefs = useRef<(HTMLInputElement | null)[]>(new Array(correctPin.length).fill(null));
     const router = useRouter();
     const { toast } = useToast();
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        const storedPin = localStorage.getItem(PIN_STORAGE_KEY);
-        const currentPin = storedPin || DEFAULT_PIN;
-        setCorrectPin(currentPin);
-        setPin(new Array(currentPin.length).fill(''));
-        inputRefs.current = new Array(currentPin.length).fill(null);
+        setIsClient(true);
     }, []);
 
     useEffect(() => {
-        if(correctPin) {
+        if(isClient) {
             setPin(new Array(correctPin.length).fill(''));
             inputRefs.current = new Array(correctPin.length).fill(null);
             inputRefs.current[0]?.focus();
         }
-    }, [correctPin]);
+    }, [correctPin, isClient]);
 
     const handlePinChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
         const value = e.target.value;
-        // Only allow numeric input
-        if (/^[0-9]$/.test(value)) {
+        if (/^[0-9]$/.test(value) || value === '') {
             const newPin = [...pin];
             newPin[index] = value;
             setPin(newPin);
 
-            if (index < correctPin.length - 1) {
+            if (value !== '' && index < correctPin.length - 1) {
                 inputRefs.current[index + 1]?.focus();
-            } else {
-                // Automatically check pin when last digit is entered
-                checkPin(newPin.join(''));
             }
-        } else if (value === '') {
-            // Handle clearing the input
-             const newPin = [...pin];
-             newPin[index] = '';
-             setPin(newPin);
+
+            if (value !== '' && index === correctPin.length - 1) {
+                // Automatically check pin when last digit is entered
+                attemptUnlock(newPin.join(''));
+            }
         }
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number) => {
         if (e.key === 'Backspace' && !pin[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
-        } else if (e.key === 'Backspace') {
-            const newPin = [...pin];
-            newPin[index] = '';
-            setPin(newPin);
         }
     };
 
-    const checkPin = async (fullPin: string) => {
+    const attemptUnlock = async (fullPin: string) => {
         if (fullPin.length !== correctPin.length) return;
 
         setIsChecking(true);
         setShowError(false);
 
-        // Simulate network latency
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        if (fullPin === correctPin) {
+        if (checkPin(fullPin)) {
             localStorage.setItem('fortress-unlocked', 'true');
             router.replace('/');
         } else {
@@ -97,8 +83,8 @@ export default function LockScreen() {
         })
     }
 
-    if (!correctPin) {
-        return null; // or a loading state
+    if (!isClient) {
+        return null;
     }
 
     return (
@@ -132,7 +118,6 @@ export default function LockScreen() {
                         <Fingerprint className="h-6 w-6 text-accent" />
                         <span>Use Fingerprint</span>
                     </Button>
-                    <Button variant="link" className="text-sm text-muted-foreground">Forgot PIN?</Button>
                 </div>
             </div>
         </div>
