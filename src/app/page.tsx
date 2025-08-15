@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -10,7 +9,8 @@ import { useLock } from '@/hooks/use-lock';
 
 export default function Home() {
   const router = useRouter();
-  const { isSetupComplete, isTempAuthenticated, isLoading } = useLock();
+  // We no longer need isTempAuthenticated here for the main page logic.
+  const { isSetupComplete, isLoading } = useLock();
 
   useEffect(() => {
     if (isLoading) {
@@ -19,14 +19,12 @@ export default function Home() {
 
     if (!isSetupComplete) {
       router.replace('/welcome');
-    } else if (!isTempAuthenticated) {
-      router.replace('/lock');
     }
-  }, [router, isSetupComplete, isTempAuthenticated, isLoading]);
+    // The logic to redirect to '/lock' is removed from here.
+  }, [router, isSetupComplete, isLoading]);
 
-  // If the page is loading, or if the setup isn't complete yet, or if the user is not authenticated for the session
-  // show a skeleton loader. This prevents a flash of content and handles all redirection cases.
-  if (isLoading || !isSetupComplete || !isTempAuthenticated) {
+  // Show a loader while the app state is loading or if setup is not complete.
+  if (isLoading || !isSetupComplete) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-2xl space-y-4">
