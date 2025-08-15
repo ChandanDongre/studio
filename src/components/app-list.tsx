@@ -16,6 +16,7 @@ export default function AppList() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoaded, setIsLoaded] = useState(false);
     const router = useRouter();
+    // isTempUnlocked is for the global 15-min unlock, isTempAuthenticated is for the current session.
     const { isTempUnlocked, isTempAuthenticated } = useLock();
 
     useEffect(() => {
@@ -54,8 +55,11 @@ export default function AppList() {
     
     const handleAppClick = (app: App) => {
         const isAppIndividuallyLocked = lockedApps.has(app.id);
-        // A user is considered "authenticated" for the session if they've unlocked globally
-        // OR if they have passed an individual app lock check.
+        
+        // A user can open an app directly if:
+        // 1. The app isn't locked.
+        // 2. The global 15-minute unlock is active.
+        // 3. The user has already unlocked something in this session.
         const canOpenDirectly = !isAppIndividuallyLocked || isTempUnlocked || isTempAuthenticated;
 
         const targetUrl = `/app-launch-success?appName=${encodeURIComponent(app.name)}`;
@@ -63,7 +67,8 @@ export default function AppList() {
         if (canOpenDirectly) {
             router.push(targetUrl);
         } else {
-            // App is locked, and user needs to authenticate.
+            // App is locked, and user needs to authenticate for this session.
+            // Redirect to the lock screen, and tell it where to go after a successful unlock.
             router.push(`/lock?redirectTo=${encodeURIComponent(targetUrl)}`);
         }
     };

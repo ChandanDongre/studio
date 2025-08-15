@@ -13,14 +13,17 @@ export default function Home() {
   const { isSetupComplete, isLoading } = useLock();
 
   useEffect(() => {
+    // Wait until zustand has rehydrated from localStorage
     if (isLoading) {
-      return; // Wait until zustand has rehydrated
+      return;
     }
+    // If setup isn't complete, redirect to the welcome page for the setup flow.
     if (!isSetupComplete) {
       router.replace('/welcome');
     }
   }, [router, isSetupComplete, isLoading]);
 
+  // Show a skeleton loader while waiting for the state to be ready
   if (isLoading || !isSetupComplete) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
@@ -33,6 +36,7 @@ export default function Home() {
     );
   }
 
+  // Once loading is complete and setup is done, show the main dashboard.
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />

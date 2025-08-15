@@ -13,11 +13,12 @@ function LockPageContent() {
   const { lockType, setTempAuthenticated, isTempAuthenticated } = useLock();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') || '/';
+  const redirectTo = searchParams.get('redirectTo');
 
+  // This is a safeguard. If the user is already authenticated for the session
+  // and somehow lands on the lock page, immediately send them to their destination.
   useEffect(() => {
-    // If user is already authenticated (e.g. via a previous unlock), just redirect.
-    if (isTempAuthenticated) {
+    if (isTempAuthenticated && redirectTo) {
         router.replace(redirectTo);
     }
   }, [isTempAuthenticated, router, redirectTo]);
@@ -25,9 +26,28 @@ function LockPageContent() {
   const onUnlock = () => {
     // Set temp authenticated state for the session
     setTempAuthenticated(true);
-    // Redirect to the originally intended destination
-    router.replace(redirectTo);
+    // Redirect to the originally intended destination after a successful unlock
+    if (redirectTo) {
+        router.replace(redirectTo);
+    } else {
+        // Fallback to dashboard if redirectTo is missing for some reason
+        router.replace('/');
+    }
   };
+  
+  // This check prevents an error if there is no redirectTo param.
+  if (!redirectTo) {
+      // You can decide what to do here. Redirect to home or show an error.
+      // Redirecting to home is a safe fallback.
+      if (typeof window !== 'undefined') {
+        router.replace('/');
+      }
+      return (
+         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+            <p>No redirection target specified. Returning to dashboard...</p>
+        </div>
+      );
+  }
 
   if (lockType === 'pin') return <LockScreen onUnlock={onUnlock} />;
   if (lockType === 'pattern') return <PatternLock onUnlock={onUnlock} />;
