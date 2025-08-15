@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from 'react';
@@ -58,7 +59,6 @@ export default function SettingsPage() {
   }, [router, isSetupComplete]);
   
    useEffect(() => {
-    setCurrentView('main');
     if (currentView === 'pin') {
         newPinInputRefs.current[0]?.focus();
     }
@@ -271,7 +271,7 @@ export default function SettingsPage() {
                         <CardDescription>Set a new password to secure your apps.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <PasswordSetup onPasswordSet={handlePasswordSet} isChangeMode={false} onCancel={() => setCurrentView('main')} />
+                         <PasswordSetup onPasswordSet={handlePasswordSet} isChangeMode={true} onCancel={() => setCurrentView('main')} />
                     </CardContent>
                 </>
             );

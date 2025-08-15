@@ -136,11 +136,8 @@ export const useLock = create<LockState>()(
     {
       name: 'fortress-lock-storage',
       storage: createJSONStorage(() => localStorage),
-      // This function runs after the stored state has been restored.
       onRehydrateStorage: () => (state) => {
           if (state) {
-            // This is the key change: ensure tempAuthenticated is always false on app load/refresh
-            // and set isLoading to false so the app knows it can render.
             state.isTempAuthenticated = false; 
             state.isLoading = false;
           }
@@ -149,18 +146,11 @@ export const useLock = create<LockState>()(
   )
 );
 
-// Initialize store and start timers
-// This block ensures that the app state is correctly initialized and timers start running
-// as soon as the app loads in the browser.
 if (typeof window !== 'undefined') {
-  // Trigger the rehydration process from localStorage.
   useLock.persist.rehydrate();
   
-  // Set isTempAuthenticated to false on the first load of any session.
-  // This prevents a user from being stuck in an authenticated state on refresh.
   useLock.getState().setTempAuthenticated(false);
 
-  // Start a timer to check lockout/temp-unlock status every second.
   setInterval(() => {
     useLock.getState()._updateStatus();
   }, 1000);
