@@ -11,6 +11,10 @@ interface PatternGridProps {
   onPatternComplete: (pattern: number[]) => Promise<boolean> | boolean;
 }
 
+const ROWS = 3;
+const COLS = 2;
+const TOTAL_DOTS = ROWS * COLS;
+
 const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
   const [activeDots, setActiveDots] = useState<number[]>([]);
   const [lines, setLines] = useState<{ start: Point; end: Point }[]>([]);
@@ -22,12 +26,12 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
 
   useEffect(() => {
     if (gridRef.current) {
-      const { width } = gridRef.current.getBoundingClientRect();
+      const { width, height } = gridRef.current.getBoundingClientRect();
       const newDotPositions: Point[] = [];
-      for (let i = 0; i < 9; i++) {
+       for (let i = 0; i < TOTAL_DOTS; i++) {
         newDotPositions.push({
-          x: (i % 3) * (width / 2) + (width / 6),
-          y: Math.floor(i / 3) * (width / 2) + (width / 6),
+          x: (i % COLS) * (width / (COLS - 1) * 0.6) + (width * 0.2),
+          y: Math.floor(i / COLS) * (height / (ROWS - 1) * 0.6) + (height * 0.2),
         });
       }
       dotPositions.current = newDotPositions;
@@ -37,7 +41,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
   const getDotFromPosition = (pos: Point): number | null => {
     if (!gridRef.current) return null;
     const { width } = gridRef.current.getBoundingClientRect();
-    const dotRadius = width / 12;
+    const dotRadius = width / 10;
 
     for (let i = 0; i < dotPositions.current.length; i++) {
       const dot = dotPositions.current[i];
@@ -123,11 +127,11 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
   const lastDotPos = activeDots.length > 0 ? dotPositions.current[activeDots[activeDots.length - 1]] : null;
 
   return (
-    <div className="relative w-64 h-64 cursor-pointer" onMouseLeave={handleEnd}>
+    <div className="relative w-48 h-64 cursor-pointer" onMouseLeave={handleEnd}>
       <svg
         ref={gridRef}
         className={cn("w-full h-full", shake && 'shake')}
-        viewBox="0 0 100 100"
+        viewBox="0 0 100 133"
         onMouseDown={handleStart}
         onMouseMove={handleMove}
         onMouseUp={handleEnd}
@@ -139,16 +143,16 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
         {lines.map((line, i) => (
           <line
             key={i}
-            x1={line.start.x * 100/256} y1={line.start.y * 100/256}
-            x2={line.end.x * 100/256} y2={line.end.y * 100/256}
+            x1={line.start.x * 100/192} y1={line.start.y * 133/256}
+            x2={line.end.x * 100/192} y2={line.end.y * 133/256}
             stroke="hsl(var(--primary))"
             strokeWidth="2"
           />
         ))}
         {isDrawing && lastDotPos && mousePos && (
           <line
-            x1={lastDotPos.x * 100/256} y1={lastDotPos.y * 100/256}
-            x2={mousePos.x * 100/256} y2={mousePos.y * 100/256}
+            x1={lastDotPos.x * 100/192} y1={lastDotPos.y * 133/256}
+            x2={mousePos.x * 100/192} y2={mousePos.y * 133/256}
             stroke="hsl(var(--primary))"
             strokeWidth="2"
             strokeDasharray="2 2"
@@ -159,7 +163,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
         {dotPositions.current.map((dot, i) => (
           <circle
             key={i}
-            cx={dot.x * 100/256} cy={dot.y * 100/256}
+            cx={dot.x * 100/192} cy={dot.y * 133/256}
             r="8"
             fill={activeDots.includes(i) ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
             stroke={activeDots.includes(i) ? 'hsl(var(--primary))' : 'hsl(var(--border))'}
@@ -171,7 +175,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
         {dotPositions.current.map((dot, i) => (
           <circle
             key={`touch-${i}`}
-            cx={dot.x * 100/256} cy={dot.y * 100/256}
+            cx={dot.x * 100/192} cy={dot.y * 133/256}
             r="12"
             fill="transparent"
           />

@@ -60,10 +60,10 @@ export default function PatternLock() {
             </div>
 
             <div className="flex flex-col items-center gap-4">
-                <Button variant="ghost" onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+                <button onClick={handleBiometric} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                     <Fingerprint className="h-6 w-6 text-accent" />
                     <span>Use Fingerprint</span>
-                </Button>
+                </button>
             </div>
         </div>
     </div>
