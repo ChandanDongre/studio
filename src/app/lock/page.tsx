@@ -18,11 +18,14 @@ function LockPageContent() {
   useEffect(() => {
     if (isLoading) return;
     
+    // If setup isn't done, user should be at welcome screen.
     if (!isSetupComplete) {
       router.replace('/welcome');
       return;
     }
     
+    // If user is already authenticated for this session, send them to their destination.
+    // This is a key part of preventing the redirect loop.
     if (isTempAuthenticated) {
       router.replace(redirectTo);
       return;
@@ -30,6 +33,7 @@ function LockPageContent() {
 
   }, [isSetupComplete, isTempAuthenticated, isLoading, router, redirectTo]);
 
+  // While loading or if a redirect is happening, show a skeleton.
   if (isLoading || !isSetupComplete || isTempAuthenticated) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">

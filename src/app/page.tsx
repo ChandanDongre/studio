@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -9,22 +10,28 @@ import { useLock } from '@/hooks/use-lock';
 
 export default function Home() {
   const router = useRouter();
-  // We no longer need isTempAuthenticated here for the main page logic.
-  const { isSetupComplete, isLoading } = useLock();
+  const { isSetupComplete, isLoading, isTempAuthenticated } = useLock();
 
   useEffect(() => {
+    // Wait until the persisted state is loaded.
     if (isLoading) {
       return;
     }
 
+    // If setup isn't done, go to the welcome screen.
     if (!isSetupComplete) {
       router.replace('/welcome');
+      return;
     }
-    // The logic to redirect to '/lock' is removed from here.
-  }, [router, isSetupComplete, isLoading]);
 
-  // Show a loader while the app state is loading or if setup is not complete.
-  if (isLoading || !isSetupComplete) {
+    // If setup is done but the user hasn't authenticated this session, go to lock screen.
+    if (!isTempAuthenticated) {
+      router.replace('/lock');
+    }
+  }, [router, isSetupComplete, isLoading, isTempAuthenticated]);
+
+  // While loading or if the user needs to be redirected, show a loading skeleton.
+  if (isLoading || !isSetupComplete || !isTempAuthenticated) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-2xl space-y-4">
@@ -36,6 +43,7 @@ export default function Home() {
     );
   }
 
+  // Otherwise, show the main dashboard.
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
