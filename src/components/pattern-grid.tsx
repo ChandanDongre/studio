@@ -1,3 +1,4 @@
+
 'use client'
 import React, { useState, useRef, useEffect, MouseEvent, TouchEvent } from 'react';
 import { cn } from '@/lib/utils';
@@ -146,18 +147,21 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete, disabled=f
   const lastDotPos = activeDots.length > 0 && dotPositions.length > 0 ? dotPositions[activeDots[activeDots.length - 1]] : null;
 
   return (
-    <div className={cn("relative w-64 h-64", disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')} onMouseLeave={e => isDrawing && handleEnd(e)}>
+    <div 
+        className={cn("relative w-64 h-64 touch-none", disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')} 
+        onMouseLeave={e => isDrawing && handleEnd(e)}
+        onTouchStart={handleStart}
+        onTouchMove={handleMove}
+        onTouchEnd={handleEnd}
+        onMouseDown={handleStart}
+        onMouseMove={handleMove}
+        onMouseUp={handleEnd}
+    >
       <svg
         ref={gridRef}
         className={cn("w-full h-full", shake && 'shake')}
         viewBox="0 0 100 100"
         preserveAspectRatio="xMidYMid meet"
-        onMouseDown={handleStart}
-        onMouseMove={handleMove}
-        onMouseUp={handleEnd}
-        onTouchStart={handleStart}
-        onTouchMove={handleMove}
-        onTouchEnd={handleEnd}
       >
         {dotPositions.length > 0 && (
           <>
@@ -169,6 +173,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete, disabled=f
                 x2={line.end.x * 100/256} y2={line.end.y * 100/256}
                 stroke="hsl(var(--primary))"
                 strokeWidth="1.5"
+                className="pointer-events-none"
               />
             ))}
             {isDrawing && lastDotPos && mousePos && (
@@ -178,6 +183,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete, disabled=f
                 stroke="hsl(var(--primary))"
                 strokeWidth="1.5"
                 strokeDasharray="2 2"
+                className="pointer-events-none"
               />
             )}
 
@@ -190,6 +196,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete, disabled=f
                 fill={activeDots.includes(i) ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
                 stroke={activeDots.includes(i) ? 'hsl(var(--primary))' : 'hsl(var(--border))'}
                 strokeWidth="0.5"
+                className="pointer-events-none"
               />
             ))}
 
@@ -200,6 +207,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete, disabled=f
                 cx={dot.x * 100/256} cy={dot.y * 100/256}
                 r="10"
                 fill="transparent"
+                className="pointer-events-none"
               />
             ))}
           </>
