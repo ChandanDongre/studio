@@ -24,6 +24,8 @@ export default function Home() {
     }
   }, [router, isSetupComplete, isTempAuthenticated, isLoading]);
 
+  // If the page is loading, or if the setup isn't complete yet, or if the user is not authenticated for the session
+  // show a skeleton loader. This prevents a flash of content and handles all redirection cases.
   if (isLoading || !isSetupComplete || !isTempAuthenticated) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
