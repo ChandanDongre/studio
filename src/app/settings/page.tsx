@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,17 +31,20 @@ import {
 
 type SecurityView = 'main' | 'pin' | 'pattern' | 'password' | 'authenticate';
 type LockMethod = 'pin' | 'pattern' | 'password';
+const PIN_LENGTH = 4;
 
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { lockType, setLockType, setPin, setPattern, setPassword, pin, password, pattern, isBiometricsEnabled, toggleBiometrics, isSetupComplete } = useLock();
+  const { lockType, setLockType, setPin, setPattern, setPassword, isBiometricsEnabled, toggleBiometrics, isSetupComplete } = useLock();
   
   const [currentView, setCurrentView] = useState<SecurityView>('main');
   const [nextView, setNextView] = useState<LockMethod | null>(null);
   
-  const [newPin, setNewPin] = useState('');
-  const [confirmNewPin, setConfirmNewPin] = useState('');
+  const [newPin, setNewPin] = useState<string[]>(new Array(PIN_LENGTH).fill(''));
+  const [confirmNewPin, setConfirmNewPin] = useState<string[]>(new Array(PIN_LENGTH).fill(''));
+  const newPinInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const confirmNewPinInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -57,7 +59,10 @@ export default function SettingsPage() {
   
    useEffect(() => {
     setCurrentView('main');
-  }, []);
+    if (currentView === 'pin') {
+        newPinInputRefs.current[0]?.focus();
+    }
+  }, [currentView]);
 
   const handleStartChange = (targetView: LockMethod) => {
     setNextView(targetView);
@@ -74,40 +79,70 @@ export default function SettingsPage() {
     }
   };
 
+  const handlePinInputChange = (e: ChangeEvent<HTMLInputElement>, index: number, type: 'new' | 'confirm') => {
+    const value = e.target.value;
+    const set = type === 'new' ? setNewPin : setConfirmNewPin;
+    const refs = type === 'new' ? newPinInputRefs : confirmNewPinInputRefs;
+    const currentPin = type === 'new' ? newPin : confirmNewPin;
 
-  const handlePinChange = (e: React.FormEvent<HTMLFormElement>) => {
+    if (/^[0-9]$/.test(value) || value === '') {
+        const newPinValue = [...currentPin];
+        newPinValue[index] = value;
+        set(newPinValue);
+
+        if (value !== '' && index < PIN_LENGTH - 1) {
+            refs.current[index + 1]?.focus();
+        }
+    }
+  };
+
+  const handlePinKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number, type: 'new' | 'confirm') => {
+      const refs = type === 'new' ? newPinInputRefs : confirmNewPinInputRefs;
+      const pinState = type === 'new' ? newPin : confirmNewPin;
+      if (e.key === 'Backspace' && !pinState[index] && index > 0) {
+          refs.current[index - 1]?.focus();
+      }
+  };
+
+
+  const handlePinSet = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (newPin.length < 4) {
+    const newPinString = newPin.join('');
+    const confirmPinString = confirmNewPin.join('');
+
+    if (newPinString.length !== PIN_LENGTH) {
         toast({
             variant: 'destructive',
             title: 'Error',
-            description: 'New PIN must be at least 4 digits.',
+            description: `PIN must be ${PIN_LENGTH} digits.`,
         });
         setIsLoading(false);
         return;
     }
 
-    if (newPin !== confirmNewPin) {
+    if (newPinString !== confirmPinString) {
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'New PINs do not match.',
       });
       setIsLoading(false);
+      setConfirmNewPin(new Array(PIN_LENGTH).fill(''));
+      confirmNewPinInputRefs.current[0]?.focus();
       return;
     }
 
-    setPin(newPin);
+    setPin(newPinString);
     setLockType('pin');
     toast({
       title: 'Success!',
       description: 'Your PIN has been set.',
     });
     
-    setNewPin('');
-    setConfirmNewPin('');
+    setNewPin(new Array(PIN_LENGTH).fill(''));
+    setConfirmNewPin(new Array(PIN_LENGTH).fill(''));
     setIsLoading(false);
     setCurrentView('main');
   };
@@ -164,36 +199,48 @@ export default function SettingsPage() {
                     <CardHeader>
                         <CardTitle>Set New PIN</CardTitle>
                         <CardDescription>
-                            {'Set a new PIN to secure your apps.'}
+                            {'Set a new 4-digit PIN to secure your apps.'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <form onSubmit={handlePinChange} className="space-y-4">
-                            <div className="space-y-2">
-                            <Label htmlFor="new-pin">New PIN (min. 4 digits)</Label>
-                            <Input
-                                id="new-pin"
-                                type="password"
-                                inputMode="numeric"
-                                value={newPin}
-                                onChange={(e) => setNewPin(e.target.value)}
-                                required
-                                minLength={4}
-                            />
+                        <form onSubmit={handlePinSet} className="space-y-6">
+                             <div className="space-y-2">
+                                <Label>New PIN</Label>
+                                <div className="mt-2 flex justify-center gap-3">
+                                    {newPin.map((digit, index) => (
+                                        <input
+                                            key={`new-pin-${index}`}
+                                            ref={(el) => (newPinInputRefs.current[index] = el)}
+                                            type="password"
+                                            inputMode="numeric"
+                                            maxLength={1}
+                                            value={digit}
+                                            onChange={(e) => handlePinInputChange(e, index, 'new')}
+                                            onKeyDown={(e) => handlePinKeyDown(e, index, 'new')}
+                                            className="h-14 w-14 rounded-lg border border-white/20 bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary"
+                                        />
+                                    ))}
+                                </div>
                             </div>
                             <div className="space-y-2">
-                            <Label htmlFor="confirm-new-pin">Confirm New PIN</Label>
-                            <Input
-                                id="confirm-new-pin"
-                                type="password"
-                                inputMode="numeric"
-                                value={confirmNewPin}
-                                onChange={(e) => setConfirmNewPin(e.target.value)}
-                                required
-                                minLength={4}
-                            />
+                                <Label>Confirm New PIN</Label>
+                                <div className="mt-2 flex justify-center gap-3">
+                                    {confirmNewPin.map((digit, index) => (
+                                        <input
+                                            key={`confirm-pin-${index}`}
+                                            ref={(el) => (confirmNewPinInputRefs.current[index] = el)}
+                                            type="password"
+                                            inputMode="numeric"
+                                            maxLength={1}
+                                            value={digit}
+                                            onChange={(e) => handlePinInputChange(e, index, 'confirm')}
+                                            onKeyDown={(e) => handlePinKeyDown(e, index, 'confirm')}
+                                            className="h-14 w-14 rounded-lg border border-white/20 bg-card text-center text-3xl font-bold text-foreground focus:border-primary focus:ring-primary"
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 pt-2">
                                 <Button type="button" variant="outline" onClick={() => setCurrentView('main')} className="w-full">Cancel</Button>
                                 <Button type="submit" disabled={isLoading} className="w-full">
                                     {isLoading ? 'Saving...' : 'Set New PIN'}
