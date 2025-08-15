@@ -4,14 +4,17 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 
 const DEFAULT_PIN = "1234";
 const DEFAULT_PATTERN = [0, 1, 2, 5, 8, 7, 6, 3];
+const DEFAULT_PASSWORD = "password";
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_DURATION_SECONDS = 30;
 const TEMP_UNLOCK_MINUTES = 15;
 
 interface LockState {
-  lockType: 'pin' | 'pattern';
+  lockType: 'pin' | 'pattern' | 'password';
   pin: string;
   pattern: number[];
+  password: string;
+  isSetupComplete: boolean;
   isLoading: boolean;
   failedAttempts: number;
   lockoutUntil: number | null; // Timestamp
@@ -20,10 +23,13 @@ interface LockState {
   remainingLockoutTime: number;
   isTempUnlocked: boolean;
   remainingTempUnlockTime: number;
-  setLockType: (type: 'pin' | 'pattern') => void;
+  setLockType: (type: 'pin' | 'pattern' | 'password') => void;
   setPin: (pin: string) => void;
   setPattern: (pattern: number[]) => void;
+  setPassword: (password: string) => void;
+  completeSetup: () => void;
   checkPin: (pin: string) => boolean;
+  checkPassword: (password: string) => boolean;
   checkPattern: (pattern: number[]) => boolean;
   wrongAttempt: () => void;
   startTempUnlock: () => void;
@@ -36,7 +42,9 @@ export const useLock = create<LockState>()(
       lockType: 'pin',
       pin: DEFAULT_PIN,
       pattern: DEFAULT_PATTERN,
-      isLoading: true, // For handling hydration
+      password: DEFAULT_PASSWORD,
+      isSetupComplete: false,
+      isLoading: true,
       failedAttempts: 0,
       lockoutUntil: null,
       tempUnlockUntil: null,
@@ -48,9 +56,18 @@ export const useLock = create<LockState>()(
       setLockType: (type) => set({ lockType: type }),
       setPin: (pin) => set({ pin, failedAttempts: 0, lockoutUntil: null }),
       setPattern: (pattern) => set({ pattern, failedAttempts: 0, lockoutUntil: null }),
+      setPassword: (password) => set({ password, failedAttempts: 0, lockoutUntil: null }),
+      completeSetup: () => set({ isSetupComplete: true }),
       
       checkPin: (pin) => {
         const isCorrect = pin === get().pin;
+        if (isCorrect) {
+            set({ failedAttempts: 0, lockoutUntil: null });
+        }
+        return isCorrect;
+      },
+      checkPassword: (password) => {
+        const isCorrect = password === get().password;
         if (isCorrect) {
             set({ failedAttempts: 0, lockoutUntil: null });
         }

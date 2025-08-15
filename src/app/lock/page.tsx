@@ -2,6 +2,7 @@
 
 import LockScreen from '@/components/lock-screen';
 import PatternLock from '@/components/pattern-lock';
+import PasswordLock from '@/components/password-lock';
 import { useLock } from '@/hooks/use-lock';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -23,5 +24,9 @@ export default function LockPage() {
     )
   }
 
-  return lockType === 'pin' ? <LockScreen /> : <PatternLock />;
+  if (lockType === 'pin') return <LockScreen />;
+  if (lockType === 'pattern') return <PatternLock />;
+  if (lockType === 'password') return <PasswordLock />;
+
+  return <LockScreen />; // Default fallback
 }

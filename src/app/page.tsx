@@ -10,18 +10,23 @@ import { useLock } from '@/hooks/use-lock';
 export default function Home() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { isTempUnlocked } = useLock();
+  const { isTempUnlocked, isSetupComplete } = useLock();
 
   useEffect(() => {
+    if (!isSetupComplete) {
+      router.replace('/welcome');
+      return;
+    }
+
     const unlocked = localStorage.getItem('fortress-unlocked') === 'true' || isTempUnlocked;
     if (!unlocked) {
       router.replace('/lock');
     } else {
       setIsAuthenticated(true);
     }
-  }, [router, isTempUnlocked]);
+  }, [router, isTempUnlocked, isSetupComplete]);
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !isSetupComplete) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-2xl space-y-4">

@@ -7,17 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, KeyRound, Lock } from 'lucide-react';
+import { ArrowLeft, KeyRound, Lock, ShieldQuestion } from 'lucide-react';
 import Header from '@/components/header';
 import { useLock } from '@/hooks/use-lock';
 import PatternSetup from '@/components/pattern-setup';
+import PasswordSetup from '@/components/password-setup';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { lockType, setLockType, setPin, setPattern } = useLock();
+  const { lockType, setLockType, setPin, setPattern, setPassword, pin } = useLock();
   
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -39,7 +40,7 @@ export default function SettingsPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    const storedPin = localStorage.getItem('fortress-pin') || "1234";
+    const storedPin = pin || "1234";
 
     if (currentPin !== storedPin) {
       toast({
@@ -92,6 +93,14 @@ export default function SettingsPage() {
     });
   }
 
+  const handlePasswordSet = (newPassword: string) => {
+    setPassword(newPassword);
+    toast({
+      title: 'Success!',
+      description: 'Your password has been updated.',
+    });
+  }
+
   if (!isAuthenticated) {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
@@ -126,10 +135,11 @@ export default function SettingsPage() {
                     <CardDescription>Manage your lock type and credentials.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs value={lockType} onValueChange={(value) => setLockType(value as 'pin' | 'pattern')} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
+                    <Tabs value={lockType} onValueChange={(value) => setLockType(value as 'pin' | 'pattern' | 'password')} className="w-full">
+                        <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="pin"><KeyRound className="mr-2"/> PIN Lock</TabsTrigger>
                             <TabsTrigger value="pattern"><Lock className="mr-2"/> Pattern Lock</TabsTrigger>
+                            <TabsTrigger value="password"><ShieldQuestion className="mr-2"/> Password</TabsTrigger>
                         </TabsList>
                         <TabsContent value="pin" className="pt-4">
                             <h3 className="text-lg font-medium mb-4">Change PIN</h3>
@@ -177,6 +187,10 @@ export default function SettingsPage() {
                         <TabsContent value="pattern" className="pt-4">
                             <h3 className="text-lg font-medium mb-4">Set New Pattern</h3>
                             <PatternSetup onPatternSet={handlePatternSet} />
+                        </TabsContent>
+                        <TabsContent value="password" className="pt-4">
+                             <h3 className="text-lg font-medium mb-4">Change Password</h3>
+                             <PasswordSetup onPasswordSet={handlePasswordSet} isChangeMode={true} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>
