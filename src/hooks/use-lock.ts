@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware'
 
 const DEFAULT_PIN = "1234";
-const DEFAULT_PATTERN = [0, 1, 3, 5, 4, 2];
+const DEFAULT_PATTERN = [0, 1, 2, 5, 8, 7, 6, 3];
 
 interface LockState {
   lockType: 'pin' | 'pattern';

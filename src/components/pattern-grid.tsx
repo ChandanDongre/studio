@@ -12,7 +12,7 @@ interface PatternGridProps {
 }
 
 const ROWS = 3;
-const COLS = 2;
+const COLS = 3;
 const TOTAL_DOTS = ROWS * COLS;
 
 const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
@@ -25,23 +25,36 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
   const dotPositions = useRef<Point[]>([]);
 
   useEffect(() => {
-    if (gridRef.current) {
-      const { width, height } = gridRef.current.getBoundingClientRect();
-      const newDotPositions: Point[] = [];
-       for (let i = 0; i < TOTAL_DOTS; i++) {
-        newDotPositions.push({
-          x: (i % COLS) * (width / (COLS - 1) * 0.6) + (width * 0.2),
-          y: Math.floor(i / COLS) * (height / (ROWS - 1) * 0.6) + (height * 0.2),
-        });
+    // Recalculate dot positions when the component mounts or when grid dimensions change
+    // This is important for responsiveness if the grid size can change.
+    const calculateDotPositions = () => {
+      if (gridRef.current) {
+        const { width, height } = gridRef.current.getBoundingClientRect();
+        const newDotPositions: Point[] = [];
+        const xOffset = width * 0.2;
+        const yOffset = height * 0.2;
+        const xSpacing = width * 0.6 / (COLS - 1);
+        const ySpacing = height * 0.6 / (ROWS - 1);
+
+        for (let i = 0; i < TOTAL_DOTS; i++) {
+          newDotPositions.push({
+            x: (i % COLS) * xSpacing + xOffset,
+            y: Math.floor(i / COLS) * ySpacing + yOffset,
+          });
+        }
+        dotPositions.current = newDotPositions;
       }
-      dotPositions.current = newDotPositions;
-    }
+    };
+    
+    calculateDotPositions();
+    window.addEventListener('resize', calculateDotPositions);
+    return () => window.removeEventListener('resize', calculateDotPositions);
   }, []);
 
   const getDotFromPosition = (pos: Point): number | null => {
     if (!gridRef.current) return null;
     const { width } = gridRef.current.getBoundingClientRect();
-    const dotRadius = width / 10;
+    const dotRadius = width / 12; // A slightly larger touch area
 
     for (let i = 0; i < dotPositions.current.length; i++) {
       const dot = dotPositions.current[i];
@@ -107,9 +120,7 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
     setMousePos(null);
 
     const result = await onPatternComplete(activeDots);
-    if(result){
-        // Success
-    } else {
+    if(!result){
         // Failure
         setShake(true);
         setTimeout(() => {
@@ -127,11 +138,12 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
   const lastDotPos = activeDots.length > 0 ? dotPositions.current[activeDots[activeDots.length - 1]] : null;
 
   return (
-    <div className="relative w-48 h-64 cursor-pointer" onMouseLeave={handleEnd}>
+    <div className="relative w-64 h-64 cursor-pointer" onMouseLeave={handleEnd}>
       <svg
         ref={gridRef}
         className={cn("w-full h-full", shake && 'shake')}
-        viewBox="0 0 100 133"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="xMidYMid meet"
         onMouseDown={handleStart}
         onMouseMove={handleMove}
         onMouseUp={handleEnd}
@@ -143,18 +155,18 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
         {lines.map((line, i) => (
           <line
             key={i}
-            x1={line.start.x * 100/192} y1={line.start.y * 133/256}
-            x2={line.end.x * 100/192} y2={line.end.y * 133/256}
+            x1={line.start.x * 100/256} y1={line.start.y * 100/256}
+            x2={line.end.x * 100/256} y2={line.end.y * 100/256}
             stroke="hsl(var(--primary))"
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
         ))}
         {isDrawing && lastDotPos && mousePos && (
           <line
-            x1={lastDotPos.x * 100/192} y1={lastDotPos.y * 133/256}
-            x2={mousePos.x * 100/192} y2={mousePos.y * 133/256}
+            x1={lastDotPos.x * 100/256} y1={lastDotPos.y * 100/256}
+            x2={mousePos.x * 100/256} y2={mousePos.y * 100/256}
             stroke="hsl(var(--primary))"
-            strokeWidth="2"
+            strokeWidth="1.5"
             strokeDasharray="2 2"
           />
         )}
@@ -163,11 +175,11 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
         {dotPositions.current.map((dot, i) => (
           <circle
             key={i}
-            cx={dot.x * 100/192} cy={dot.y * 133/256}
-            r="8"
+            cx={dot.x * 100/256} cy={dot.y * 100/256}
+            r="6"
             fill={activeDots.includes(i) ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
             stroke={activeDots.includes(i) ? 'hsl(var(--primary))' : 'hsl(var(--border))'}
-            strokeWidth="1"
+            strokeWidth="0.5"
           />
         ))}
 
@@ -175,8 +187,8 @@ const PatternGrid: React.FC<PatternGridProps> = ({ onPatternComplete }) => {
         {dotPositions.current.map((dot, i) => (
           <circle
             key={`touch-${i}`}
-            cx={dot.x * 100/192} cy={dot.y * 133/256}
-            r="12"
+            cx={dot.x * 100/256} cy={dot.y * 100/256}
+            r="10"
             fill="transparent"
           />
         ))}
