@@ -11,7 +11,8 @@ import { ArrowLeft, KeyRound, Lock } from 'lucide-react';
 import Header from '@/components/header';
 import { useLock } from '@/hooks/use-lock';
 import PatternSetup from '@/components/pattern-setup';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SettingsPage() {
   const router = useRouter();
