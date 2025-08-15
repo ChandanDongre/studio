@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Fingerprint, ShieldCheck } from 'lucide-react';
@@ -9,12 +8,15 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLock } from '@/hooks/use-lock';
 
-export default function PasswordLock() {
-    const { checkPassword, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled } = useLock();
+interface PasswordLockProps {
+    onUnlock: () => void;
+}
+
+export default function PasswordLock({ onUnlock }: PasswordLockProps) {
+    const { checkPassword, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled, setTempAuthenticated } = useLock();
     const [password, setPassword] = useState('');
     const [isChecking, setIsChecking] = useState(false);
     const [showError, setShowError] = useState(false);
-    const router = useRouter();
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -32,8 +34,8 @@ export default function PasswordLock() {
         await new Promise(resolve => setTimeout(resolve, 300));
 
         if (checkPassword(password)) {
-            localStorage.setItem('fortress-unlocked', 'true');
-            router.replace('/');
+            setTempAuthenticated();
+            onUnlock();
         } else {
             wrongAttempt();
             setShowError(true);
@@ -50,8 +52,8 @@ export default function PasswordLock() {
             title: "Biometric Scan Success",
             description: "Unlocked via fingerprint.",
         });
-        localStorage.setItem('fortress-unlocked', 'true');
-        router.replace('/');
+        setTempAuthenticated();
+        onUnlock();
     }
 
     if (!isClient) {
@@ -68,7 +70,7 @@ export default function PasswordLock() {
                 <p className="mt-2 text-muted-foreground">
                     {isLockedOut 
                         ? `Too many attempts. Try again in ${remainingLockoutTime}s.`
-                        : "Unlock Fortress to continue."
+                        : "Unlock to continue."
                     }
                 </p>
                 <form onSubmit={attemptUnlock} className="my-8 space-y-4">

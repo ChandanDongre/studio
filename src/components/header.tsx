@@ -20,11 +20,12 @@ import { useLock } from '@/hooks/use-lock';
 export default function Header() {
     const router = useRouter();
     const { toast } = useToast();
-    const { startTempUnlock, isTempUnlocked, remainingTempUnlockTime } = useLock();
+    const { startTempUnlock, isTempUnlocked, remainingTempUnlockTime, clearTempAuthentication } = useLock();
 
     const handleLock = () => {
-        localStorage.removeItem('fortress-unlocked');
-        router.replace('/lock');
+        clearTempAuthentication();
+        toast({ title: 'Locked', description: 'Your apps are now secured.' });
+        router.push('/'); // Go to home, which no longer requires lock
     };
 
     const handleTempUnlock = () => {

@@ -55,14 +55,16 @@ export default function AppList() {
     
     const handleAppClick = (app: App) => {
         const isAppIndividuallyLocked = lockedApps.has(app.id);
-        const isFortressUnlocked = localStorage.getItem('fortress-unlocked') === 'true' || isTempUnlocked;
+        const isFortressTempUnlocked = isTempUnlocked;
 
-        if (isAppIndividuallyLocked && !isFortressUnlocked) {
-             // This case should theoretically not be hit if the main page guard is working,
-             // but as a fallback, we redirect to lock.
-            router.push('/lock');
+        if (isAppIndividuallyLocked && !isFortressTempUnlocked) {
+            // App is locked and there is no temporary unlock active
+            // Redirect to lock screen, passing the app id as a param
+            // So we know where to return to.
+            const targetUrl = `/app-launch-success?appName=${encodeURIComponent(app.name)}`;
+             router.push(`/lock?redirectTo=${encodeURIComponent(targetUrl)}`);
         } else {
-             // If Fortress is unlocked, or if the app itself isn't locked, "launch" it.
+             // If Fortress is temp unlocked, or if the app itself isn't locked, "launch" it.
              toast({
                 title: `${app.name} Launched`,
                 description: `This is a demo. You have successfully "launched" the app.`,

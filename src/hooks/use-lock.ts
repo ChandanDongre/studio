@@ -8,6 +8,7 @@ const DEFAULT_PASSWORD = "password";
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_DURATION_SECONDS = 30;
 const TEMP_UNLOCK_MINUTES = 15;
+const TEMP_AUTH_MINUTES = 1; // How long user stays authenticated after one successful unlock
 
 interface LockState {
   lockType: 'pin' | 'pattern' | 'password';
@@ -19,11 +20,13 @@ interface LockState {
   isLoading: boolean;
   failedAttempts: number;
   lockoutUntil: number | null; // Timestamp
-  tempUnlockUntil: number | null; // Timestamp
+  tempUnlockUntil: number | null; // Timestamp for global unlock
+  tempAuthenticatedUntil: number | null; // Timestamp for single-session unlock
   isLockedOut: boolean;
   remainingLockoutTime: number;
   isTempUnlocked: boolean;
   remainingTempUnlockTime: number;
+  isTempAuthenticated: boolean;
   setLockType: (type: 'pin' | 'pattern' | 'password') => void;
   setPin: (pin: string) => void;
   setPattern: (pattern: number[]) => void;
@@ -35,6 +38,8 @@ interface LockState {
   checkPattern: (pattern: number[]) => boolean;
   wrongAttempt: () => void;
   startTempUnlock: () => void;
+  setTempAuthenticated: () => void;
+  clearTempAuthentication: () => void;
   _updateLockoutStatus: () => void;
 }
 
@@ -51,10 +56,12 @@ export const useLock = create<LockState>()(
       failedAttempts: 0,
       lockoutUntil: null,
       tempUnlockUntil: null,
+      tempAuthenticatedUntil: null,
       isLockedOut: false,
       remainingLockoutTime: 0,
       isTempUnlocked: false,
       remainingTempUnlockTime: 0,
+      isTempAuthenticated: false,
       
       setLockType: (type) => set({ lockType: type }),
       setPin: (pin) => set({ pin, failedAttempts: 0, lockoutUntil: null }),
@@ -96,11 +103,17 @@ export const useLock = create<LockState>()(
       },
       startTempUnlock: () => {
         const tempUnlockUntil = Date.now() + TEMP_UNLOCK_MINUTES * 60 * 1000;
-        set({ tempUnlockUntil });
-        localStorage.setItem('fortress-unlocked', 'true');
+        set({ tempUnlockUntil, tempAuthenticatedUntil: null });
+      },
+      setTempAuthenticated: () => {
+        const tempAuthenticatedUntil = Date.now() + TEMP_AUTH_MINUTES * 60 * 1000;
+        set({ tempAuthenticatedUntil });
+      },
+      clearTempAuthentication: () => {
+        set({ tempAuthenticatedUntil: null });
       },
       _updateLockoutStatus: () => {
-        const { lockoutUntil, tempUnlockUntil } = get();
+        const { lockoutUntil, tempUnlockUntil, tempAuthenticatedUntil } = get();
         const now = Date.now();
         
         // Handle Lockout
@@ -110,21 +123,25 @@ export const useLock = create<LockState>()(
         if (isLockedOut) {
           set({ isLockedOut, remainingLockoutTime: Math.max(0, remainingLockoutTime) });
         } else if (get().isLockedOut) {
-          // If it was locked out but time expired
           set({ isLockedOut: false, remainingLockoutTime: 0, failedAttempts: 0, lockoutUntil: null });
         }
 
-        // Handle Temp Unlock
+        // Handle Global Temp Unlock
         const isTempUnlocked = tempUnlockUntil ? now < tempUnlockUntil : false;
         const remainingTempUnlockTime = tempUnlockUntil ? Math.ceil((tempUnlockUntil - now) / 1000) : 0;
          if (isTempUnlocked) {
           set({ isTempUnlocked, remainingTempUnlockTime: Math.max(0, remainingTempUnlockTime) });
         } else if (get().isTempUnlocked) {
-          // If it was temp unlocked but time expired
           set({ isTempUnlocked: false, remainingTempUnlockTime: 0, tempUnlockUntil: null });
-          localStorage.removeItem('fortress-unlocked');
         }
 
+        // Handle Session Authentication
+        const isTempAuthenticated = tempAuthenticatedUntil ? now < tempAuthenticatedUntil : false;
+         if (!isTempAuthenticated && get().isTempAuthenticated) {
+            set({ isTempAuthenticated: false, tempAuthenticatedUntil: null });
+         } else if (isTempAuthenticated && !get().isTempAuthenticated) {
+            set({ isTempAuthenticated: true });
+         }
       }
     }),
     {
@@ -137,12 +154,8 @@ export const useLock = create<LockState>()(
   )
 );
 
-// This is a bit of a hack to deal with zustand persist + Next.js SSR/hydration
-// On first load, we need to make sure the client state is synced before rendering UI
-// that depends on the persisted state.
 if (typeof window !== 'undefined') {
   useLock.persist.rehydrate();
-  // Periodically update lockout status
   setInterval(() => {
     useLock.getState()._updateLockoutStatus();
   }, 1000);

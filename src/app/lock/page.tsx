@@ -1,13 +1,25 @@
 'use client';
 
+import { useEffect } from 'react';
 import LockScreen from '@/components/lock-screen';
 import PatternLock from '@/components/pattern-lock';
 import PasswordLock from '@/components/password-lock';
 import { useLock } from '@/hooks/use-lock';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LockPage() {
-  const { lockType, isLoading } = useLock();
+  const { lockType, isLoading, isSetupComplete } = useLock();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirectTo') || '/';
+
+  useEffect(() => {
+    // If setup isn't complete, they shouldn't be on the lock page.
+    if (!isSetupComplete) {
+      router.replace('/welcome');
+    }
+  }, [isSetupComplete, router]);
 
   if (isLoading) {
     return (
@@ -24,9 +36,13 @@ export default function LockPage() {
     )
   }
 
-  if (lockType === 'pin') return <LockScreen />;
-  if (lockType === 'pattern') return <PatternLock />;
-  if (lockType === 'password') return <PasswordLock />;
+  const onUnlock = () => {
+    router.replace(redirectTo);
+  };
 
-  return <LockScreen />; // Default fallback
+  if (lockType === 'pin') return <LockScreen onUnlock={onUnlock} />;
+  if (lockType === 'pattern') return <PatternLock onUnlock={onUnlock} />;
+  if (lockType === 'password') return <PasswordLock onUnlock={onUnlock} />;
+
+  return <LockScreen onUnlock={onUnlock} />; // Default fallback
 }

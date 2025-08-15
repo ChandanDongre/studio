@@ -1,20 +1,22 @@
 'use client';
 
 import { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Fingerprint, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useLock } from '@/hooks/use-lock';
 
-export default function LockScreen() {
-    const { pin: correctPin, checkPin, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled } = useLock();
+interface LockScreenProps {
+    onUnlock: () => void;
+}
+
+export default function LockScreen({ onUnlock }: LockScreenProps) {
+    const { pin: correctPin, checkPin, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled, setTempAuthenticated } = useLock();
     const [pin, setPin] = useState<string[]>(new Array(correctPin.length).fill(''));
     const [isChecking, setIsChecking] = useState(false);
     const [showError, setShowError] = useState(false);
     const inputRefs = useRef<(HTMLInputElement | null)[]>(new Array(correctPin.length).fill(null));
-    const router = useRouter();
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
@@ -62,8 +64,8 @@ export default function LockScreen() {
         await new Promise(resolve => setTimeout(resolve, 300));
 
         if (checkPin(fullPin)) {
-            localStorage.setItem('fortress-unlocked', 'true');
-            router.replace('/');
+            setTempAuthenticated();
+            onUnlock();
         } else {
             wrongAttempt();
             setShowError(true);
@@ -81,8 +83,8 @@ export default function LockScreen() {
             title: "Biometric Scan Success",
             description: "Unlocked via fingerprint.",
         });
-        localStorage.setItem('fortress-unlocked', 'true');
-        router.replace('/');
+        setTempAuthenticated();
+        onUnlock();
     }
 
     if (!isClient) {
@@ -99,7 +101,7 @@ export default function LockScreen() {
                 <p className="mt-2 text-muted-foreground">
                     {isLockedOut 
                         ? `Too many attempts. Try again in ${remainingLockoutTime}s.`
-                        : "Unlock Fortress to continue."
+                        : "Unlock to continue."
                     }
                 </p>
                 <div className={cn('my-8 flex justify-center gap-3', showError && 'shake')}>

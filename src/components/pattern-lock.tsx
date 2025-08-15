@@ -1,16 +1,17 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { ShieldCheck, Fingerprint } from 'lucide-react';
 import { useLock } from '@/hooks/use-lock';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import PatternGrid from './pattern-grid';
 
-export default function PatternLock() {
-  const router = useRouter();
+interface PatternLockProps {
+    onUnlock: () => void;
+}
+
+export default function PatternLock({ onUnlock }: PatternLockProps) {
   const { toast } = useToast();
-  const { checkPattern, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled } = useLock();
+  const { checkPattern, wrongAttempt, isLockedOut, remainingLockoutTime, isBiometricsEnabled, setTempAuthenticated } = useLock();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -23,8 +24,8 @@ export default function PatternLock() {
     const isCorrect = checkPattern(completedPattern);
     
     if (isCorrect) {
-      localStorage.setItem('fortress-unlocked', 'true');
-      router.replace('/');
+      setTempAuthenticated();
+      onUnlock();
     } else {
         wrongAttempt();
         toast({
@@ -43,8 +44,8 @@ export default function PatternLock() {
         title: "Biometric Scan Success",
         description: "Unlocked via fingerprint.",
     })
-    localStorage.setItem('fortress-unlocked', 'true');
-    router.replace('/');
+    setTempAuthenticated();
+    onUnlock();
   }
 
   if (!isClient) {

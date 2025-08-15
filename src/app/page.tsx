@@ -9,24 +9,20 @@ import { useLock } from '@/hooks/use-lock';
 
 export default function Home() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { isTempUnlocked, isSetupComplete } = useLock();
+  const [isLoading, setIsLoading] = useState(true);
+  const { isSetupComplete } = useLock();
 
   useEffect(() => {
+    // Only check if setup is complete.
+    // The main page is no longer guarded by a global lock.
     if (!isSetupComplete) {
       router.replace('/welcome');
-      return;
-    }
-
-    const unlocked = localStorage.getItem('fortress-unlocked') === 'true' || isTempUnlocked;
-    if (!unlocked) {
-      router.replace('/lock');
     } else {
-      setIsAuthenticated(true);
+      setIsLoading(false);
     }
-  }, [router, isTempUnlocked, isSetupComplete]);
+  }, [router, isSetupComplete]);
 
-  if (!isAuthenticated || !isSetupComplete) {
+  if (isLoading || !isSetupComplete) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-2xl space-y-4">

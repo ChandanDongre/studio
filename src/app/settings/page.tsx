@@ -31,7 +31,7 @@ type SecurityView = 'main' | 'pin' | 'pattern' | 'password';
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { lockType, setLockType, setPin, setPattern, setPassword, pin, isBiometricsEnabled, toggleBiometrics } = useLock();
+  const { lockType, setLockType, setPin, setPattern, setPassword, pin, isBiometricsEnabled, toggleBiometrics, isSetupComplete } = useLock();
   
   const [currentView, setCurrentView] = useState<SecurityView>('main');
   
@@ -40,16 +40,16 @@ export default function SettingsPage() {
   const [confirmNewPin, setConfirmNewPin] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
    useEffect(() => {
-    const unlocked = localStorage.getItem('fortress-unlocked') === 'true';
-    if (!unlocked) {
-      router.replace('/lock');
+    // If setup is not complete, redirect to welcome page
+    if (!isSetupComplete) {
+      router.replace('/welcome');
     } else {
-      setIsAuthenticated(true);
+      setIsReady(true);
     }
-  }, [router]);
+  }, [router, isSetupComplete]);
   
    useEffect(() => {
     // Reset view if user navigates away and comes back
@@ -278,7 +278,7 @@ export default function SettingsPage() {
   }
 
 
-  if (!isAuthenticated) {
+  if (!isReady) {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
             <div className="w-full max-w-2xl space-y-4">
